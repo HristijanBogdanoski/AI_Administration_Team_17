@@ -1,3 +1,5 @@
+from enum import Enum
+
 from pydantic import BaseModel, EmailStr, Field
 from datetime import datetime
 
@@ -45,12 +47,16 @@ class Token(BaseModel):
             }
         }
 
+class UserRole(str, Enum):
+    user = "user"
+    admin = "admin"
 
 class UserResponse(BaseModel):
     """Schema for user response (no password)"""
     id: int
     email: str
     full_name: str | None
+    role: UserRole
     created_at: datetime
     
     class Config:

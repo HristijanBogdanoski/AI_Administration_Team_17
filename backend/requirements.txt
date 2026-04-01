@@ -12,10 +12,10 @@ python-multipart==0.0.9
 httpx==0.27.0
 python-dotenv==1.0.1
 matplotlib==3.7.2
-numpy==2.3.0
+numpy==1.26.4
 pandas==2.3.0
 scikit-learn==1.3.0
-scipy==1.11.0
+scipy==1.11.4
 seaborn==0.12.2
 sentence-transformers==2.2.2
 # videte za ova ne sum siguren transformers==4.30.2
