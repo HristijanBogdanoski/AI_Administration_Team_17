@@ -5,7 +5,7 @@ from datetime import timedelta
 from app.db.session import get_db
 from app.schemas.auth import UserRegister, UserLogin, Token, UserRegisterResponse
 from app.services.user_service import create_user, authenticate_user
-from app.core.security import create_access_token, ACCESS_TOKEN_EXPIRE_MINUTES
+from app.core.security import create_access_token, ACCESS_TOKEN_EXPIRE_MINUTES, require_admin
 
 router = APIRouter(prefix="/auth", tags=["authentication"])
 
@@ -23,13 +23,11 @@ async def register(user_data: UserRegister, db: Session = Depends(get_db)):
     """
     # Create user
     db_user = create_user(db, user_data)
-    
     if db_user is None:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Email already registered"
         )
-    
     return db_user
 
 
@@ -44,19 +42,20 @@ async def login(credentials: UserLogin, db: Session = Depends(get_db)):
     Returns a JWT access token.
     """
     user = authenticate_user(db, credentials.email, credentials.password)
-    
     if user is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid email or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    
     # Create access token
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
-        data={"sub": user.email, "user_id": user.id},
+        data={"sub": user.email, "user_id": user.id, "role": user.role},
         expires_delta=access_token_expires
     )
-    
     return {"access_token": access_token, "token_type": "bearer"}
+
+@router.get("/admin/ping", dependencies=[Depends(require_admin)])
+async def admin_ping():
+    return {"message": "Admin access granted"}
