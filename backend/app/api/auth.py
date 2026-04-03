@@ -3,8 +3,17 @@ from sqlalchemy.orm import Session
 from datetime import timedelta
 
 from app.db.session import get_db
-from app.schemas.auth import UserRegister, UserLogin, Token, UserRegisterResponse
-from app.services.user_service import create_user, authenticate_user
+from app.schemas.auth import (
+    UserRegister,
+    UserLogin,
+    Token,
+    UserRegisterResponse,
+    UserRoleUpdate,
+    UserDeleteRequest,
+    UserResponse,
+    MessageResponse,
+)
+from app.services.user_service import create_user, authenticate_user, update_user_role, delete_user_by_email
 from app.core.security import create_access_token, ACCESS_TOKEN_EXPIRE_MINUTES, require_admin
 
 router = APIRouter(prefix="/auth", tags=["authentication"])
@@ -59,3 +68,40 @@ async def login(credentials: UserLogin, db: Session = Depends(get_db)):
 @router.get("/admin/ping", dependencies=[Depends(require_admin)])
 async def admin_ping():
     return {"message": "Admin access granted"}
+
+
+@router.post("/admin/set-role", response_model=UserResponse)
+async def set_user_role(
+    role_data: UserRoleUpdate,
+    db: Session = Depends(get_db),
+    _admin=Depends(require_admin),
+):
+    user = update_user_role(db, role_data.email, role_data.role.value)
+    if user is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found",
+        )
+    return user
+
+
+@router.delete("/admin/remove-user", response_model=MessageResponse)
+async def remove_user(
+    user_data: UserDeleteRequest,
+    db: Session = Depends(get_db),
+    admin=Depends(require_admin),
+):
+    if user_data.email == admin.email:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="You cannot delete your own admin account",
+        )
+
+    deleted = delete_user_by_email(db, user_data.email)
+    if not deleted:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found",
+        )
+
+    return {"message": f"User {user_data.email} deleted"}
