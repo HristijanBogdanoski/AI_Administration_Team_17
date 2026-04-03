@@ -1,7 +1,6 @@
 from enum import Enum
 
 from pydantic import BaseModel, EmailStr, Field
-from datetime import datetime
 
 
 class UserRegister(BaseModel):
@@ -51,13 +50,43 @@ class UserRole(str, Enum):
     user = "user"
     admin = "admin"
 
+
+class UserRoleUpdate(BaseModel):
+    """Schema for updating a user's role"""
+    email: EmailStr
+    role: UserRole
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "email": "user@example.com",
+                "role": "admin"
+            }
+        }
+
+
+class UserDeleteRequest(BaseModel):
+    """Schema for deleting a user by email"""
+    email: EmailStr
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "email": "user@example.com"
+            }
+        }
+
+
+class MessageResponse(BaseModel):
+    """Simple message response schema"""
+    message: str
+
 class UserResponse(BaseModel):
     """Schema for user response (no password)"""
     id: int
     email: str
     full_name: str | None
     role: UserRole
-    created_at: datetime
     
     class Config:
         from_attributes = True
@@ -65,8 +94,7 @@ class UserResponse(BaseModel):
             "example": {
                 "id": 1,
                 "email": "user@example.com",
-                "full_name": "John Doe",
-                "created_at": "2026-03-27T10:30:00"
+                "full_name": "John Doe"
             }
         }
 

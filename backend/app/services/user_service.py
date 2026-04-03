@@ -53,3 +53,26 @@ def get_user_by_email(db: Session, email: str) -> User | None:
 def get_user_by_id(db: Session, user_id: int) -> User | None:
     """Get a user by ID"""
     return db.query(User).filter(User.id == user_id).first()
+
+
+def update_user_role(db: Session, email: str, role: str) -> User | None:
+    """Update a user's role and return the updated user."""
+    user = get_user_by_email(db, email)
+    if not user:
+        return None
+
+    user.role = role
+    db.commit()
+    db.refresh(user)
+    return user
+
+
+def delete_user_by_email(db: Session, email: str) -> bool:
+    """Delete a user by email. Returns True if deleted, False if not found."""
+    user = get_user_by_email(db, email)
+    if not user:
+        return False
+
+    db.delete(user)
+    db.commit()
+    return True

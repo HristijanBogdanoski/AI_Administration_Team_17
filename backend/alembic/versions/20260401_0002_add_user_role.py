@@ -39,6 +39,7 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
-    op.drop_constraint("ck_users_role", "users", type_="check")
-    op.drop_index(op.f("ix_users_role"), table_name="users")
-    op.drop_column("users", "role")
+    with op.batch_alter_table("users") as batch_op:
+        batch_op.drop_constraint("ck_users_role", type_="check")
+        batch_op.drop_index(op.f("ix_users_role"))
+        batch_op.drop_column("role")
