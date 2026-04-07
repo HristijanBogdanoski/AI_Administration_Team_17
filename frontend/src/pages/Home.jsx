@@ -48,8 +48,8 @@ function Home() {
         e.preventDefault();
         const endpoint = authMode === "login" ? "/auth/login" : "/auth/register";
         const payload = authMode === "login"
-            ? { email, password }
-            : { email, full_name: fullName, password };
+    ? { username: email, password: password } // We map your 'email' state to the 'username' key
+    : { email, full_name: fullName, password };
         try {
             const response = await fetch(`http://127.0.0.1:8000${endpoint}`, {
                 method: "POST",
