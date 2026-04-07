@@ -3,8 +3,8 @@ import Navbar from './components/layout/Navbar';
 import Footer from './components/layout/Footer';
 import Home from './pages/Home';
 import FAQ from './pages/FAQ'; 
-import AIChat from './pages/AI'; // <--- ДОДАЈ ГО ОВА (провери дали патеката е точна)
-import Services from './pages/Services'; // <--- ДОДАЈ ГО ОВА
+import AIChat from './pages/AI'; // Го користиме AIChat како име за компонентата од фајлот AI.jsx
+import Services from './pages/Services'; 
 import TopBanner from './components/layout/TopBanner';
 import './styles/globals.css';
 
@@ -21,11 +21,12 @@ export default function App() {
             <Route path="/" element={<Home />} />
             <Route path="/faq" element={<FAQ />} />
             
-            {/* ГИ ДОДАВАМЕ ОВИЕ ДВЕ ЛИНИИ ЗА ДА РАБОТАТ ЛИНКОВИТЕ: */}
+            {/* Оваа рута сега ќе ја отвора страната за АИ Чат */}
             <Route path="/ai" element={<AIChat />} />
+            
             <Route path="/services" element={<Services />} />
             
-            {/* Оваа линија ги „фаќа“ сите грешни линкови и ги враќа дома */}
+            {/* Оваа линија секогаш треба да биде последна во Routes */}
             <Route path="*" element={<Home />} />
           </Routes>
         </main>
