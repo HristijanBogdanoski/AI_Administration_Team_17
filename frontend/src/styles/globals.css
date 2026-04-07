@@ -1,0 +1,52 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap');
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+:root {
+  --gov-blue: #002D5A;      /* Сината од Hero секцијата */
+  --gov-blue-dark: #001F3F; /* Уште потемна за Stats и Footer */
+  --gov-accent: #FFB800;    /* Златната за копчиња и бројки */
+  --gov-red: #C8102E;       /* Црвената линија најгоре */
+}
+
+body {
+  font-family: 'Inter', sans-serif;
+  background-color: #ffffff;
+  color: #333;
+  line-height: 1.6;
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+button {
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+button:hover {
+  opacity: 0.9;
+}
+.nav-link {
+  color: #FFFFFF;
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 500;
+  margin: 0 5px; /* Малку го намаливме маргинот бидејќи сега се пошироки како копчиња */
+  padding: 8px 16px; /* Простор околу текстот за да личи на копче */
+  border-radius: 6px; /* Заоблени ќошиња */
+  white-space: nowrap;
+  transition: all 0.3s ease; /* Ги анимира сите промени (и боја и позадина) */
+}
+
+.nav-link:hover {
+  background-color: #FFB800 !important; /* Портокалова позадина на hover */
+  color: #002D5A !important; /* Текстот станува темен за да се чита на портокалово */
+}
