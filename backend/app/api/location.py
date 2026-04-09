@@ -1,31 +1,25 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
-from sqlalchemy import or_, func
 
 from app.db.session import get_db
-from app.models.service_office import ServiceOffice
 from app.schemas.service_office import (
     ServiceOfficeResponse,
     ServiceOfficeCreate,
     ServiceOfficeUpdate,
-    CoordinatesSchema,
+)
+from app.services.location_service import (
+    apply_service_location_update,
+    create_service_location as create_location,
+    delete_service_location as delete_location,
+    get_service_location as find_location_by_service,
+    get_service_location_by_id as find_location_by_id,
+    list_service_locations as list_locations,
+    save_service_location,
+    service_location_exists_by_service_id,
+    to_response,
 )
 
 router = APIRouter(prefix="/location", tags=["Location Services"])
-
-
-def _to_response(office: ServiceOffice) -> ServiceOfficeResponse:
-    return ServiceOfficeResponse(
-        id=office.id,
-        service_id=office.service_id,
-        service_name=office.service_name,
-        office_name=office.office_name,
-        address=office.address,
-        coordinates=CoordinatesSchema(lat=office.latitude, lng=office.longitude),
-        working_hours=office.working_hours,
-        contact_email=office.contact_email,
-        notes=office.notes,
-    )
 
 
 # GET all
@@ -40,8 +34,7 @@ def list_service_locations(
         limit: int = Query(50, ge=1, le=200),
         db: Session = Depends(get_db),
 ) -> list[ServiceOfficeResponse]:
-    offices = db.query(ServiceOffice).offset(skip).limit(limit).all()
-    return [_to_response(o) for o in offices]
+    return list_locations(db, skip, limit)
 
 
 # Get single by ID
@@ -55,10 +48,10 @@ def get_service_location_by_id(
         location_id: int,
         db: Session = Depends(get_db),
 ) -> ServiceOfficeResponse:
-    office = db.query(ServiceOffice).filter(ServiceOffice.id == location_id).first()
+    office = find_location_by_id(db, location_id)
     if not office:
         raise HTTPException(status_code=404, detail=f"Location with id {location_id} not found.")
-    return _to_response(office)
+    return to_response(office)
 
 
 # Get by service name or service ID
@@ -72,22 +65,13 @@ def get_service_location(
         service: str = Query(..., min_length=1, description="Service name or service_id"),
         db: Session = Depends(get_db),
 ) -> ServiceOfficeResponse:
-    office = (
-        db.query(ServiceOffice)
-        .filter(
-            or_(
-                func.lower(ServiceOffice.service_name) == service.strip().lower(),
-                ServiceOffice.service_id == service.strip().lower(),
-            )
-        )
-        .first()
-    )
+    office = find_location_by_service(db, service)
     if not office:
         raise HTTPException(
             status_code=404,
             detail=f"No office found for service '{service}'.",
         )
-    return _to_response(office)
+    return to_response(office)
 
 
 # Post create
@@ -102,30 +86,13 @@ def create_service_location(
         payload: ServiceOfficeCreate,
         db: Session = Depends(get_db),
 ) -> ServiceOfficeResponse:
-    existing = db.query(ServiceOffice).filter(
-        ServiceOffice.service_id == payload.service_id
-    ).first()
-    if existing:
+    if service_location_exists_by_service_id(db, payload.service_id):
         raise HTTPException(
             status_code=409,
             detail=f"A location with service_id '{payload.service_id}' already exists.",
         )
-
-    office = ServiceOffice(
-        service_id=payload.service_id,
-        service_name=payload.service_name,
-        office_name=payload.office_name,
-        address=payload.address,
-        latitude=payload.coordinates.lat,
-        longitude=payload.coordinates.lng,
-        working_hours=payload.working_hours,
-        contact_email=payload.contact_email,
-        notes=payload.notes,
-    )
-    db.add(office)
-    db.commit()
-    db.refresh(office)
-    return _to_response(office)
+    office = create_location(db, payload)
+    return to_response(office)
 
 
 # Put update
@@ -140,29 +107,12 @@ def update_service_location(
         payload: ServiceOfficeUpdate,
         db: Session = Depends(get_db),
 ) -> ServiceOfficeResponse:
-    office = db.query(ServiceOffice).filter(ServiceOffice.id == location_id).first()
+    office = find_location_by_id(db, location_id)
     if not office:
         raise HTTPException(status_code=404, detail=f"Location with id {location_id} not found.")
-
-    if payload.service_name is not None:
-        office.service_name = payload.service_name
-    if payload.office_name is not None:
-        office.office_name = payload.office_name
-    if payload.address is not None:
-        office.address = payload.address
-    if payload.coordinates is not None:
-        office.latitude = payload.coordinates.lat
-        office.longitude = payload.coordinates.lng
-    if payload.working_hours is not None:
-        office.working_hours = payload.working_hours
-    if payload.contact_email is not None:
-        office.contact_email = payload.contact_email
-    if payload.notes is not None:
-        office.notes = payload.notes
-
-    db.commit()
-    db.refresh(office)
-    return _to_response(office)
+    office = apply_service_location_update(office, payload)
+    office = save_service_location(db, office)
+    return to_response(office)
 
 
 # Delete
@@ -176,8 +126,7 @@ def delete_service_location(
         location_id: int,
         db: Session = Depends(get_db),
 ) -> None:
-    office = db.query(ServiceOffice).filter(ServiceOffice.id == location_id).first()
+    office = find_location_by_id(db, location_id)
     if not office:
         raise HTTPException(status_code=404, detail=f"Location with id {location_id} not found.")
-    db.delete(office)
-    db.commit()
+    delete_location(db, office)
