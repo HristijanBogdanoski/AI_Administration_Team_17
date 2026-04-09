@@ -13,7 +13,13 @@ from app.schemas.auth import (
     UserResponse,
     MessageResponse,
 )
-from app.services.user_service import create_user, authenticate_user, update_user_role, delete_user_by_email
+from app.services.user_service import (
+    create_user,
+    authenticate_user,
+    update_user_role,
+    delete_user_by_email,
+    get_all_users,
+)
 from app.core.security import create_access_token, ACCESS_TOKEN_EXPIRE_MINUTES, require_admin
 
 router = APIRouter(prefix="/auth", tags=["authentication"])
@@ -68,6 +74,14 @@ async def login(credentials: UserLogin, db: Session = Depends(get_db)):
 @router.get("/admin/ping", dependencies=[Depends(require_admin)])
 async def admin_ping():
     return {"message": "Admin access granted"}
+
+
+@router.get("/admin/users", response_model=list[UserResponse])
+async def list_users(
+    db: Session = Depends(get_db),
+    _admin=Depends(require_admin),
+):
+    return get_all_users(db)
 
 
 @router.post("/admin/set-role", response_model=UserResponse)
