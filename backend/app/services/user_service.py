@@ -55,6 +55,11 @@ def get_user_by_id(db: Session, user_id: int) -> User | None:
     return db.query(User).filter(User.id == user_id).first()
 
 
+def get_all_users(db: Session) -> list[User]:
+    """Return all users ordered by ID."""
+    return db.query(User).order_by(User.id.asc()).all()
+
+
 def update_user_role(db: Session, email: str, role: str) -> User | None:
     """Update a user's role and return the updated user."""
     user = get_user_by_email(db, email)

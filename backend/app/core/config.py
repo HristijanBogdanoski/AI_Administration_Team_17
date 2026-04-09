@@ -1,5 +1,5 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
-from pydantic import Field
+from pydantic import Field, AliasChoices
 
 
 class Settings(BaseSettings):
@@ -7,7 +7,10 @@ class Settings(BaseSettings):
     sqlite_url: str = "sqlite:///./app.db"
     use_sqlite: bool = False
 
-    gemini_api_key: str = Field(default="", alias="GEMINI_API_KEY")
+    gemini_api_key: str = Field(
+        default="",
+        validation_alias=AliasChoices("GEMINI_API_KEY", "GEMINI_KEY"),
+    )
     gemini_model: str = Field(default="gemini-1.5-flash", alias="GEMINI_MODEL")
 
     @property
