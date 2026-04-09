@@ -20,11 +20,8 @@ app.add_middleware(
 # Include routers
 app.include_router(auth_router)
 app.include_router(chat_router)
-<<<<<<< HEAD
 app.include_router(services_router)
-=======
 app.include_router(location_router)
->>>>>>> 05a4d9d (Add location services endpoint with model, migration and seed data)
 
 @app.get("/")
 async def read_root():
