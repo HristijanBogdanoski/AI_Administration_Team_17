@@ -40,3 +40,19 @@ class ServiceOfficeResponse(BaseModel):
     notes: Optional[str] = None
 
     model_config = {"from_attributes": True}
+
+
+class MapLocationResponse(BaseModel):
+    institution: str
+    search_query: str
+    resolved_address: str
+    display_name: str
+    coordinates: CoordinatesSchema
+    source: str
+    matched_by: str
+    place_id: Optional[int] = None
+    osm_type: Optional[str] = None
+    osm_id: Optional[int] = None
+    confidence: Optional[float] = None
+
+    model_config = {"from_attributes": True}

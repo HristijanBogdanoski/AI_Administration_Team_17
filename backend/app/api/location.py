@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 
 from app.db.session import get_db
 from app.schemas.service_office import (
+    MapLocationResponse,
     ServiceOfficeResponse,
     ServiceOfficeCreate,
     ServiceOfficeUpdate,
@@ -11,12 +12,17 @@ from app.services.location_service import (
     apply_service_location_update,
     create_service_location as create_location,
     delete_service_location as delete_location,
+    get_map_ready_location,
     get_service_location as find_location_by_service,
     get_service_location_by_id as find_location_by_id,
     list_service_locations as list_locations,
     save_service_location,
     service_location_exists_by_service_id,
     to_response,
+)
+from app.services.openstreetmap_service import (
+    OpenStreetMapGeocodingNotFoundError,
+    OpenStreetMapGeocodingServiceError,
 )
 
 router = APIRouter(prefix="/location", tags=["Location Services"])
@@ -72,6 +78,24 @@ def get_service_location(
             detail=f"No office found for service '{service}'.",
         )
     return to_response(office)
+
+
+@router.get(
+    "/map",
+    response_model=MapLocationResponse,
+    summary="Get map-ready coordinates for an institution",
+)
+def get_map_location(
+        institution: str = Query(..., min_length=1, description="Service name, service_id, or office name"),
+    address: str | None = Query(None, description="Optional address to geocode when no stored office exists"),
+        db: Session = Depends(get_db),
+) -> MapLocationResponse:
+    try:
+        return get_map_ready_location(db, institution, address)
+    except OpenStreetMapGeocodingNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except OpenStreetMapGeocodingServiceError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
 
 
 # Post create

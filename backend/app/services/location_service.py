@@ -4,9 +4,14 @@ from sqlalchemy.orm import Session
 from app.models.service_office import ServiceOffice
 from app.schemas.service_office import (
     CoordinatesSchema,
+    MapLocationResponse,
     ServiceOfficeCreate,
     ServiceOfficeResponse,
     ServiceOfficeUpdate,
+)
+from app.services.openstreetmap_service import (
+    build_skopje_query,
+    geocode_skopje_query,
 )
 
 
@@ -40,7 +45,25 @@ def get_service_location(db: Session, service: str) -> ServiceOffice | None:
         .filter(
             or_(
                 func.lower(ServiceOffice.service_name) == normalized.lower(),
-                ServiceOffice.service_id == normalized,
+                func.lower(ServiceOffice.service_id) == normalized.lower(),
+                func.lower(ServiceOffice.office_name) == normalized.lower(),
+                func.lower(ServiceOffice.address) == normalized.lower(),
+            )
+        )
+        .first()
+    )
+
+
+def get_service_location_by_identifier(db: Session, institution: str) -> ServiceOffice | None:
+    normalized = institution.strip()
+    return (
+        db.query(ServiceOffice)
+        .filter(
+            or_(
+                func.lower(ServiceOffice.service_name) == normalized.lower(),
+                func.lower(ServiceOffice.service_id) == normalized.lower(),
+                func.lower(ServiceOffice.office_name) == normalized.lower(),
+                func.lower(ServiceOffice.address) == normalized.lower(),
             )
         )
         .first()
@@ -97,3 +120,37 @@ def save_service_location(db: Session, office: ServiceOffice) -> ServiceOffice:
 def delete_service_location(db: Session, office: ServiceOffice) -> None:
     db.delete(office)
     db.commit()
+
+
+def get_map_ready_location(
+    db: Session,
+    institution: str,
+    address: str | None = None,
+) -> MapLocationResponse:
+    office = get_service_location_by_identifier(db, institution)
+    if office is not None:
+        return MapLocationResponse(
+            institution=office.service_name,
+            search_query=office.address,
+            resolved_address=office.address,
+            display_name=f"{office.office_name}, {office.address}",
+            coordinates=CoordinatesSchema(lat=office.latitude, lng=office.longitude),
+            source="database",
+            matched_by="stored service office",
+        )
+
+    search_query = build_skopje_query(institution, address)
+    geocoded = geocode_skopje_query(search_query)
+    return MapLocationResponse(
+        institution=institution.strip(),
+        search_query=search_query,
+        resolved_address=address.strip() if address else search_query,
+        display_name=geocoded.display_name,
+        coordinates=CoordinatesSchema(lat=geocoded.lat, lng=geocoded.lng),
+        source="openstreetmap",
+        matched_by="geocoded address",
+        place_id=geocoded.place_id,
+        osm_type=geocoded.osm_type,
+        osm_id=geocoded.osm_id,
+        confidence=geocoded.importance,
+    )
