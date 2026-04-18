@@ -6,7 +6,11 @@ from app.api.chat import router as chat_router
 from app.api.services import router as services_router
 from app.api.location import router as location_router
 
-app = FastAPI(title="AI Public Administration API", version="1.0.0")
+app = FastAPI(
+    title="AI Public Administration API",
+    version="1.0.0",
+    swagger_ui_parameters={"persistAuthorization": True},
+)
 
 # CORS middleware
 app.add_middleware(

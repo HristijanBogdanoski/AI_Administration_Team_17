@@ -13,7 +13,7 @@ from app.services.service_service import (
     save_service,
 )
 
-router = APIRouter(prefix="/services", tags=["services"])
+router = APIRouter(prefix="/services", tags=["Services"])
 
 
 @router.get("", response_model=list[ServiceOut])

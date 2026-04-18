@@ -25,13 +25,13 @@ from app.services.openstreetmap_service import (
     OpenStreetMapGeocodingServiceError,
 )
 
-router = APIRouter(prefix="/location", tags=["Location Services"])
+router = APIRouter(prefix="/location", tags=["Location"])
 
 
 # GET all
 
 @router.get(
-    "/services",
+    "",
     response_model=list[ServiceOfficeResponse],
     summary="Get all service office locations",
 )
@@ -46,7 +46,7 @@ def list_service_locations(
 # Get single by ID
 
 @router.get(
-    "/services/{location_id}",
+    "/{location_id}",
     response_model=ServiceOfficeResponse,
     summary="Get a single service office by ID",
 )
@@ -101,7 +101,7 @@ def get_map_location(
 # Post create
 
 @router.post(
-    "/services",
+    "",
     response_model=ServiceOfficeResponse,
     status_code=201,
     summary="Create a new service office location",
@@ -122,7 +122,7 @@ def create_service_location(
 # Put update
 
 @router.put(
-    "/services/{location_id}",
+    "/{location_id}",
     response_model=ServiceOfficeResponse,
     summary="Update an existing service office location",
 )
@@ -142,7 +142,7 @@ def update_service_location(
 # Delete
 
 @router.delete(
-    "/services/{location_id}",
+    "/{location_id}",
     status_code=204,
     summary="Delete a service office location",
 )

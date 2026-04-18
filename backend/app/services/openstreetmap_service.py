@@ -32,16 +32,18 @@ class OpenStreetMapLocation:
 
 
 def build_skopje_query(institution: str, address: str | None = None) -> str:
-    normalized_institution = " ".join(institution.split()).strip()
-    normalized_address = " ".join(address.split()).strip() if address else ""
+    parts: list[str] = []
 
-    combined = normalized_address or normalized_institution
-    if not combined:
-        return "Skopje, North Macedonia"
+    normalized_institution = " ".join(institution.split()).strip()
+    if normalized_institution:
+        parts.append(normalized_institution)
 
     if address:
-        combined = normalized_address or normalized_institution
+        normalized_address = " ".join(address.split()).strip()
+        if normalized_address and normalized_address.lower() not in normalized_institution.lower():
+            parts.append(normalized_address)
 
+    combined = ", ".join(parts) if parts else normalized_institution
     lowered = combined.lower()
     if "skopje" not in lowered:
         combined = f"{combined}, Skopje, North Macedonia" if combined else "Skopje, North Macedonia"
