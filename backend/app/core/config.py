@@ -12,6 +12,12 @@ class Settings(BaseSettings):
         validation_alias=AliasChoices("GEMINI_API_KEY", "GEMINI_KEY"),
     )
     gemini_model: str = Field(default="gemini-1.5-flash", alias="GEMINI_MODEL")
+    tavily_api_key: str = Field(
+        default="",
+        validation_alias=AliasChoices("TAVILY_API_KEY", "TAVILY_KEY"),
+    )
+    tavily_max_results: int = Field(default=3, alias="TAVILY_MAX_RESULTS")
+    tavily_search_depth: str = Field(default="basic", alias="TAVILY_SEARCH_DEPTH")
 
     @property
     def database_url(self) -> str:

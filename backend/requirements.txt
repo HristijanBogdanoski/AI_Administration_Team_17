@@ -19,5 +19,6 @@ scipy==1.11.4
 seaborn==0.12.2
 sentence-transformers==2.2.2
 google-generativeai==0.8.5
+tavily-python>=0.5.0
 pyparsing>=3.1.0
 # videte za ova ne sum siguren transformers==4.30.2
