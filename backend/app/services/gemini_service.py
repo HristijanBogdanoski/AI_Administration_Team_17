@@ -24,14 +24,20 @@ Location Data: <каде се поднесува барањето во Севе�
 FALLBACK
 """.strip()
 
-def ask_gemini(question: str) -> str:
+def ask_gemini(question: str, web_context: str = "") -> str:
     if not settings.gemini_api_key:
         raise RuntimeError("GEMINI_API_KEY is not set.")
 
     model = genai.GenerativeModel(settings.gemini_model)
 
-    prompt = f"""{SYSTEM_PROMPT}
+    context_block = (
+        f"\nВеб-контекст (користи само ако е релевантен и веродостоен):\n{web_context}\n"
+        if web_context
+        else ""
+    )
 
+    prompt = f"""{SYSTEM_PROMPT}
+{context_block}
 Прашање: {question}
 """
     resp = model.generate_content(prompt)
