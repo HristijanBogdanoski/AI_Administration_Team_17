@@ -5,7 +5,7 @@ const NAV_LINKS = [
     { label: 'Дома', path: '/' },
     { label: 'ЧПП', path: '/faq' },
     { label: 'Услуги', path: '/' },
-    { label: 'Локација', path: '/' },
+    { label: 'Локација', path: '/locations' }, // ПРОМЕНЕТО ОД '/' ВО '/locations'
     { label: 'АИ Чет', path: '/chat' },
 ];
 
@@ -60,11 +60,9 @@ function Navbar() {
                 {/* Links */}
                 <div style={{ display: 'flex', gap: 4 }}>
                     {NAV_LINKS.map(({ label, path }) => {
-                        const active =
-                            label === 'АИ Чет' ? location.pathname === '/chat' :
-                            label === 'ЧПП'    ? location.pathname === '/faq' :
-                            label === 'Дома'   ? location.pathname === '/' :
-                            false;
+                        
+                        const active = location.pathname === path;
+                        
                         return (
                             <button
                                 key={label}
@@ -96,7 +94,7 @@ function Navbar() {
                     <button
                         onClick={() => navigate('/login')}
                         style={{
-                            background: location.pathname === '/login' ? '#D4A017' : '#D4A017',
+                            background: '#D4A017',
                             color: '#0f2044', border: 'none', padding: '9px 22px',
                             borderRadius: 8, fontWeight: 700, cursor: 'pointer', fontSize: '17px'
                         }}
