@@ -4,8 +4,8 @@ import { useNavigate, useLocation } from 'react-router-dom';
 const NAV_LINKS = [
     { label: 'Дома', path: '/' },
     { label: 'ЧПП', path: '/faq' },
-    { label: 'Услуги', path: '/' },
-    { label: 'Локација', path: '/locations' }, // ПРОМЕНЕТО ОД '/' ВО '/locations'
+    { label: 'Услуги', path: '/services' },
+    { label: 'Локација', path: '/locations' },
     { label: 'АИ Чет', path: '/chat' },
 ];
 
@@ -60,9 +60,7 @@ function Navbar() {
                 {/* Links */}
                 <div style={{ display: 'flex', gap: 4 }}>
                     {NAV_LINKS.map(({ label, path }) => {
-                        
                         const active = location.pathname === path;
-                        
                         return (
                             <button
                                 key={label}

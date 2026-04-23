@@ -4,7 +4,8 @@ import Home from './pages/Home';
 import Login from './pages/Login';
 import AiChat from './pages/AiChat';
 import FAQ from './pages/FAQ';
-import Locations from './pages/Locations'
+import Locations from './pages/Locations';
+import Services from "./pages/Services";
 
 function App() {
   return (
@@ -16,6 +17,7 @@ function App() {
           <Route path="/faq" element={<FAQ />} />
           <Route path='/locations' element={<Locations/>}/>
           <Route path="/chat" element={<AiChat />} />
+          <Route path="/services" element={<Services />} />
         </Route>
       </Routes>
     </Router>
