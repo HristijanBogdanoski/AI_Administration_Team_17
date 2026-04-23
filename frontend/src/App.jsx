@@ -4,6 +4,7 @@ import Home from './pages/Home';
 import Login from './pages/Login';
 import AiChat from './pages/AiChat';
 import FAQ from './pages/FAQ';
+import Services from "./pages/Services";
 
 function App() {
   return (
@@ -14,6 +15,7 @@ function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/faq" element={<FAQ />} />
           <Route path="/chat" element={<AiChat />} />
+          <Route path="/services" element={<Services />} />
         </Route>
       </Routes>
     </Router>
