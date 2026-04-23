@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import '../index.css';
 
 function Home() {
-    const [isLoggedIn, setIsLoggedIn] = useState(false);
     const [showModal, setShowModal] = useState(false);
     const [showAuthChoice, setShowAuthChoice] = useState(false);
     const [authMode, setAuthMode] = useState("login");
@@ -16,12 +15,8 @@ function Home() {
     const [chatInput, setChatInput] = useState("");
     const navigate = useNavigate();
 
-    // Initialize Google Identity Services
+    /* global google */
     useEffect(() => {
-        const token = localStorage.getItem("token");
-        if (token) setIsLoggedIn(true);
-
-        /* global google */
         if (window.google) {
             google.accounts.id.initialize({
                 // Note: You can replace this with a real Client ID from Google Cloud Console
@@ -60,7 +55,6 @@ function Home() {
             if (response.ok) {
                 if (authMode === "login") {
                     localStorage.setItem("token", data.access_token);
-                    setIsLoggedIn(true);
                     setShowModal(false);
                 } else {
                     alert("Успешна регистрација! Сега можете да се најавите.");
@@ -76,7 +70,6 @@ function Home() {
 
     const handleLogout = () => {
         localStorage.removeItem("token");
-        setIsLoggedIn(false);
         window.location.reload();
     };
 
@@ -145,7 +138,7 @@ function Home() {
                                 background: "none", border: "none", color: "#fff",
                                 fontSize: "1.4rem", cursor: "pointer", lineHeight: 1
                             }}
-                        >&times;</button>
+                        >&times;</button>11
 
                         <p style={{ fontSize: "0.8rem", color: "#aaa", marginBottom: "6px", textTransform: "uppercase", letterSpacing: "0.05em" }}>
                             Create an account to collaborate on
@@ -248,49 +241,6 @@ function Home() {
                 </div>
             )}
 
-            {/* --- NAVBAR 1 --- */}
-            <div className="navbar-container">
-                <div className="nav-section"></div>
-                <div className="nav-section text-center">
-                    <h4>Government ChatBot Home FAQ</h4>
-                </div>
-                <div className="nav-section text-right">
-                    {isLoggedIn ? (
-                        <button className="btn-link" onClick={handleLogout}>Одјава</button>
-                    ) : (
-                        <>
-                            <button className="btn-link" onClick={() => {
-                                setChoiceEmail("");
-                                setShowAuthChoice(true);
-                            }}>Sign up with email
-                            </button>
-                            {/* Updated Navbar Google Button */}
-                            <button className="btn-link2" onClick={handleGoogleLogin}>
-                                Continue with Google
-                            </button>
-                        </>
-                    )}
-                </div>
-            </div>
-
-            <div className="second-container">
-                <h5>Портал на Владата на Република Северна Македонија</h5>
-            </div>
-
-            {/* --- NAVBAR 2 --- */}
-            <div className="third-container">
-                <div className="nav-section"></div>
-                <div className="nav-section text-center">
-                    <button className="btn-link3">Дома</button>
-                    <button className="btn-link3">ЧПП</button>
-                    <button className="btn-link3">Услуги</button>
-                    <button className="btn-link3">Локација</button>
-                    <button className="btn-link3">AИ Чет</button>
-                </div>
-                <div className="nav-section text-right">
-                    {!isLoggedIn && <button className="btn-link5" onClick={()=> navigate('/login')}>Најава</button>}
-                </div>
-            </div>
 
             {/* --- HERO SECTION --- */}
             <div className="fourth-container">
@@ -398,7 +348,7 @@ function Home() {
                         </div>
                     </div>
                     <div className="footer-right-button">
-                        <button className="footer-ai-btn" onClick={() => {}}>Отвори АИ Чет</button>
+                        <button className="footer-ai-btn" onClick={() => navigate('/chat')}>Отвори АИ Чет</button>
                     </div>
                 </div>
                 <hr style={{ borderColor: "rgba(255,255,255,0.1)", margin: "40px 0" }} />
