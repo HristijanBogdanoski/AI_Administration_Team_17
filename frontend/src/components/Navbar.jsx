@@ -4,7 +4,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 const NAV_LINKS = [
     { label: 'Дома', path: '/' },
     { label: 'ЧПП', path: '/faq' },
-    { label: 'Услуги', path: '/' },
+    { label: 'Услуги', path: '/services' },
     { label: 'Локација', path: '/' },
     { label: 'АИ Чет', path: '/chat' },
 ];
@@ -64,6 +64,7 @@ function Navbar() {
                             label === 'АИ Чет' ? location.pathname === '/chat' :
                             label === 'ЧПП'    ? location.pathname === '/faq' :
                             label === 'Дома'   ? location.pathname === '/' :
+                                label === 'Услуги' ? location.pathname === '/services' :
                             false;
                         return (
                             <button

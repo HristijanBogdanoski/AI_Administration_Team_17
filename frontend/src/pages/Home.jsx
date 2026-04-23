@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, {useState, useEffect} from 'react';
+import {useNavigate} from 'react-router-dom';
 import '../index.css';
 
 function Home() {
@@ -43,12 +43,12 @@ function Home() {
         e.preventDefault();
         const endpoint = authMode === "login" ? "/auth/login" : "/auth/register";
         const payload = authMode === "login"
-    ? { username: email, password: password } // We map your 'email' state to the 'username' key
-    : { email, full_name: fullName, password };
+            ? {username: email, password: password} // We map your 'email' state to the 'username' key
+            : {email, full_name: fullName, password};
         try {
             const response = await fetch(`http://127.0.0.1:8000${endpoint}`, {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
+                headers: {"Content-Type": "application/json"},
                 body: JSON.stringify(payload)
             });
             const data = await response.json();
@@ -84,15 +84,15 @@ function Home() {
     const handleChatSubmit = async (e) => {
         e.preventDefault();
         if (!chatInput.trim()) return;
-        const userMessage = { type: "user", text: chatInput };
+        const userMessage = {type: "user", text: chatInput};
         setChatMessages(prev => [...prev, userMessage]);
         const currentInput = chatInput;
         setChatInput("");
         try {
             const response = await fetch("http://127.0.0.1:8000/faq/search", {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ query: currentInput, top_k: 3 })
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify({query: currentInput, top_k: 3})
             });
             const data = await response.json();
             if (response.ok) {
@@ -105,11 +105,11 @@ function Home() {
                 }));
                 setChatMessages(prev => [...prev, ...botMessages]);
             } else {
-                setChatMessages(prev => [...prev, { type: "bot", text: "Грешка при добивање на одговор." }]);
+                setChatMessages(prev => [...prev, {type: "bot", text: "Грешка при добивање на одговор."}]);
             }
         } catch (err) {
             console.error("Грешка при поврзување со серверот.");
-            setChatMessages(prev => [...prev, { type: "bot", text: "Грешка при поврзување со серверот." }]);
+            setChatMessages(prev => [...prev, {type: "bot", text: "Грешка при поврзување со серверот."}]);
         }
     };
 
@@ -138,12 +138,19 @@ function Home() {
                                 background: "none", border: "none", color: "#fff",
                                 fontSize: "1.4rem", cursor: "pointer", lineHeight: 1
                             }}
-                        >&times;</button>11
+                        >&times;</button>
+                        11
 
-                        <p style={{ fontSize: "0.8rem", color: "#aaa", marginBottom: "6px", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                        <p style={{
+                            fontSize: "0.8rem",
+                            color: "#aaa",
+                            marginBottom: "6px",
+                            textTransform: "uppercase",
+                            letterSpacing: "0.05em"
+                        }}>
                             Create an account to collaborate on
                         </p>
-                        <h3 style={{ color: "#fff", fontSize: "1.2rem", marginBottom: "28px", fontWeight: "600" }}>
+                        <h3 style={{color: "#fff", fontSize: "1.2rem", marginBottom: "28px", fontWeight: "600"}}>
                             "Government Chatbot Home FAQ"
                         </h3>
 
@@ -157,14 +164,15 @@ function Home() {
                                 display: "flex", alignItems: "center", justifyContent: "center", gap: "10px"
                             }}
                         >
-                            <img src="https://www.google.com/favicon.ico" alt="Google" style={{ width: "18px", height: "18px" }} />
+                            <img src="https://www.google.com/favicon.ico" alt="Google"
+                                 style={{width: "18px", height: "18px"}}/>
                             Continue with Google
                         </button>
 
-                        <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "20px" }}>
-                            <hr style={{ flex: 1, borderColor: "#333", borderTop: "1px solid #333" }} />
-                            <span style={{ color: "#666", fontSize: "0.85rem" }}>or</span>
-                            <hr style={{ flex: 1, borderColor: "#333", borderTop: "1px solid #333" }} />
+                        <div style={{display: "flex", alignItems: "center", gap: "10px", marginBottom: "20px"}}>
+                            <hr style={{flex: 1, borderColor: "#333", borderTop: "1px solid #333"}}/>
+                            <span style={{color: "#666", fontSize: "0.85rem"}}>or</span>
+                            <hr style={{flex: 1, borderColor: "#333", borderTop: "1px solid #333"}}/>
                         </div>
 
                         <input
@@ -203,10 +211,10 @@ function Home() {
                         <button className="close-btn" onClick={() => setShowModal(false)}>&times;</button>
                         <div className="modal-tabs">
                             <button className={authMode === "login" ? "active" : ""}
-                                onClick={() => setAuthMode("login")}>Најава
+                                    onClick={() => setAuthMode("login")}>Најава
                             </button>
                             <button className={authMode === "register" ? "active" : ""}
-                                onClick={() => setAuthMode("register")}>Регистрација
+                                    onClick={() => setAuthMode("register")}>Регистрација
                             </button>
                         </div>
                         <form onSubmit={handleAuth} className="auth-form">
@@ -233,7 +241,7 @@ function Home() {
                                 onChange={(e) => setPassword(e.target.value)}
                                 required
                             />
-                            <button type="submit" className="btn-link5" style={{ width: "100%", marginTop: "15px" }}>
+                            <button type="submit" className="btn-link5" style={{width: "100%", marginTop: "15px"}}>
                                 {authMode === "login" ? "Влези" : "Регистрирај се"}
                             </button>
                         </form>
@@ -245,65 +253,118 @@ function Home() {
             {/* --- HERO SECTION --- */}
             <div className="fourth-container">
                 <div className="box-inside">
-                    <h1 style={{ color: "white" }}>Добредојдовте на <span
-                        style={{ color: "rgb(212, 160, 23)" }}>е-Влада</span></h1>
-                    <p style={{ color: "rgb(147, 197, 253)" }}>Вашиот дигитален портал за сите валидни услуги. Брзо, лесно
+                    <h1 style={{color: "white"}}>Добредојдовте на <span
+                        style={{color: "rgb(212, 160, 23)"}}>е-Влада</span></h1>
+                    <p style={{color: "rgb(147, 197, 253)"}}>Вашиот дигитален портал за сите валидни услуги. Брзо, лесно
                         и достапно 24/7.</p>
                     <div className="buttons-inside">
-                        <button className="btn-link6">Разгледај Услуги &rarr;</button>
-                        <button className="btn-link7" onClick={() => {}}>АИ Асистент</button>
+                        <button className="btn-link6" onClick={() => navigate('/services')}>Разгледај
+                            Услуги &rarr;</button>
+                        <button
+                            className={`btn-link7 ${location.pathname === "/chat" ? "active" : ""}`}
+                            onClick={() => navigate("/chat")}
+                        >
+                            АИ Асистент
+                        </button>
                     </div>
                 </div>
             </div>
 
             {/* --- STATS --- */}
             <div className="fifth-container">
-                <div><p style={{ color: "rgb(212, 160, 23)", fontWeight: "700", fontSize: "1.5rem" }}>2.1М+</p><p
-                    style={{ color: "rgb(147, 197, 253)" }}>Граѓани</p></div>
-                <div><p style={{ color: "rgb(212, 160, 23)", fontWeight: "700", fontSize: "1.5rem" }}>150+</p><p
-                    style={{ color: "rgb(147, 197, 253)" }}>Услуги</p></div>
-                <div><p style={{ color: "rgb(212, 160, 23)", fontWeight: "700", fontSize: "1.5rem" }}>24/7</p><p
-                    style={{ color: "rgb(147, 197, 253)" }}>Пристап</p></div>
-                <div><p style={{ color: "rgb(212, 160, 23)", fontWeight: "700", fontSize: "1.5rem" }}>98%</p><p
-                    style={{ color: "rgb(147, 197, 253)" }}>Задоволство</p></div>
+                <div><p style={{color: "rgb(212, 160, 23)", fontWeight: "700", fontSize: "1.5rem"}}>2.1М+</p><p
+                    style={{color: "rgb(147, 197, 253)"}}>Граѓани</p></div>
+                <div><p style={{color: "rgb(212, 160, 23)", fontWeight: "700", fontSize: "1.5rem"}}>150+</p><p
+                    style={{color: "rgb(147, 197, 253)"}}>Услуги</p></div>
+                <div><p style={{color: "rgb(212, 160, 23)", fontWeight: "700", fontSize: "1.5rem"}}>24/7</p><p
+                    style={{color: "rgb(147, 197, 253)"}}>Пристап</p></div>
+                <div><p style={{color: "rgb(212, 160, 23)", fontWeight: "700", fontSize: "1.5rem"}}>98%</p><p
+                    style={{color: "rgb(147, 197, 253)"}}>Задоволство</p></div>
             </div>
 
             <div className="sixth-container">
                 <div className="la-buttona">
-                    <button>Поднеси барање за пасош</button>
-                    <button>Провери статус на барање</button>
-                    <button>Даночна пријава</button>
-                    <button>Закажи термин</button>
-                    <button>Провери возачка дозвола</button>
-                    <button>Социјална помош</button>
+                    <button
+                        onClick={() => navigate("/services")}
+                        style={{cursor: "pointer"}}
+                    >
+                        Поднеси барање за пасош
+                    </button>
+                    <button style={{cursor: "pointer"}} onClick={() => navigate("/services")}>
+                        Провери статус на барање
+                    </button>
+
+                    <button style={{cursor: "pointer"}} onClick={() => navigate("/services")}>
+                        Даночна пријава
+                    </button>
+
+                    <button style={{cursor: "pointer"}} onClick={() => navigate("/services")}>
+                        Закажи термин
+                    </button>
+
+                    <button style={{cursor: "pointer"}} onClick={() => navigate("/services")}>
+                        Провери возачка дозвола
+                    </button>
+
+                    <button style={{cursor: "pointer"}} onClick={() => navigate("/services")}>
+                        Социјална помош
+                    </button>
                 </div>
             </div>
 
             {/* --- SERVICES GRID --- */}
             <div className="seventh-container">
                 <div className="la-texta">
-                    <h2 style={{ color: "rgb(27, 58, 107)" }}>Нашите Услуги</h2>
+                    <h2 style={{color: "rgb(27, 58, 107)"}}>Нашите Услуги</h2>
                 </div>
+
                 <div className="cards-wrapper">
                     <div className="service-card">
                         <h3>Лични Документи</h3>
                         <p>Пасош, лична карта, возачка дозвола</p>
-                        <button className="card-btn">Дознај повеќе</button>
+                        <button
+                            className="card-btn"
+                            style={{cursor: "pointer"}}
+                            onClick={() => navigate("/services")}
+                        >
+                            Дознај повеќе
+                        </button>
                     </div>
+
                     <div className="service-card">
                         <h3>Даноци и финансии</h3>
                         <p>Даночна пријава, УЈП услуги, плаќања</p>
-                        <button className="card-btn" style={{ color: "red" }}>Дознај повеќе</button>
+                        <button
+                            className="card-btn"
+                            style={{color: "red", cursor: "pointer"}}
+                            onClick={() => navigate("/services")}
+                        >
+                            Дознај повеќе
+                        </button>
                     </div>
+
                     <div className="service-card">
                         <h3>Социјални Услуги</h3>
                         <p>Бенефиции, пензии, здравствена заштита</p>
-                        <button className="card-btn" style={{ color: "rgb(212, 160, 23)" }}>Дознај повеќе</button>
+                        <button
+                            className="card-btn"
+                            style={{color: "rgb(212, 160, 23)", cursor: "pointer"}}
+                            onClick={() => navigate("/services")}
+                        >
+                            Дознај повеќе
+                        </button>
                     </div>
+
                     <div className="service-card">
                         <h3>Локации</h3>
                         <p>Канцеларии, општини, институции</p>
-                        <button className="card-btn" style={{ color: "rgb(22, 101, 52)" }}>Дознај повеќе</button>
+                        <button
+                            className="card-btn"
+                            style={{color: "rgb(22, 101, 52)", cursor: "pointer"}}
+                            onClick={() => navigate("/services")}
+                        >
+                            Дознај повеќе
+                        </button>
                     </div>
                 </div>
             </div>
@@ -312,18 +373,18 @@ function Home() {
             <div className="eigth-container">
                 <div className="eigth-text">
                     <p className="zosto">Зошто е-Влада?</p>
-                    <h2 style={{ color: "rgb(27, 58, 107)" }}>Дигитална трансформација на јавните услуги</h2>
+                    <h2 style={{color: "rgb(27, 58, 107)"}}>Дигитална трансформација на јавните услуги</h2>
                     <p>е-Влада е официјалниот портал на Владата на Република Северна Македонија кој овозможува брз,
                         лесен и безбеден пристап до над 150 јавни услуги директно од дома.</p>
                     <p>Поднесување барања без чекање на ред</p>
                     <p>Проверка на статус на барање во реално време</p>
                     <p>Безбедно плаќање на такси и придонеси</p>
                     <p>АИ асистент за брза помош</p>
-                    <button>Почни сега &rarr;</button>
+                    <button onClick={() => navigate("/services")}>Почни сега &rarr;</button>
                 </div>
                 <div className="eigth-image">
                     <img
-                        style={{ height: "400px", width: "700px", borderRadius: "20px", objectFit: "cover" }}
+                        style={{height: "400px", width: "700px", borderRadius: "20px", objectFit: "cover"}}
                         src="https://images.unsplash.com/photo-1746044060948-ce76677390f2?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&w=800"
                         alt="Digital Government Services"
                     />
@@ -334,8 +395,9 @@ function Home() {
             <div className="ninth-container">
                 <div className="footer-top">
                     <div className="footer-left-info">
-                        <h2 style={{ color: "rgb(212, 160, 23)", margin: 0 }}>Потребна ви е помош?</h2>
-                        <p style={{ fontSize: "0.9rem", color: "rgb(147, 197, 253)" }}>Нашиот тим е достапен секој работен ден</p>
+                        <h2 style={{color: "rgb(212, 160, 23)", margin: 0}}>Потребна ви е помош?</h2>
+                        <p style={{fontSize: "0.9rem", color: "rgb(147, 197, 253)"}}>Нашиот тим е достапен секој работен
+                            ден</p>
                     </div>
                     <div className="footer-center-contact">
                         <div className="contact-item">
@@ -351,19 +413,20 @@ function Home() {
                         <button className="footer-ai-btn" onClick={() => navigate('/chat')}>Отвори АИ Чет</button>
                     </div>
                 </div>
-                <hr style={{ borderColor: "rgba(255,255,255,0.1)", margin: "40px 0" }} />
+                <hr style={{borderColor: "rgba(255,255,255,0.1)", margin: "40px 0"}}/>
                 <div className="footer-bottom">
                     <div className="footer-brand">
-                        <h3 style={{ color: "rgb(212, 160, 23)", marginBottom: "15px" }}>е-Влада</h3>
-                        <p>Официјален портал на Владата на Република Северна Македонија за јавни услуги и информации.</p>
+                        <h3 style={{olor: "rgb(212, 160, 23)", marginBottom: "15px"}}>е-Влада</h3>
+                        <p>Официјален портал на Владата на Република Северна Македонија за јавни услуги и
+                            информации.</p>
                     </div>
                     <div className="footer-links">
                         <h4>Брзи врски</h4>
                         <ul>
-                            <li>Дома</li>
-                            <li>ЧПП</li>
-                            <li>Услуги</li>
-                            <li>Локација</li>
+                            <li style={{cursor: "pointer"}} onClick={() => navigate("/")}>Дома</li>
+                            <li style={{cursor: "pointer"}} onClick={() => navigate("/faq")}>ЧПП</li>
+                            <li style={{cursor: "pointer"}} onClick={() => navigate("/services")}>Услуги</li>
+                            <li style={{cursor: "pointer"}} onClick={() => navigate("/")}>Локација</li>
                         </ul>
                     </div>
                     <div className="footer-contact-details">
