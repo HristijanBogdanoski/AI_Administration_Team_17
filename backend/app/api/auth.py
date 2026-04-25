@@ -12,15 +12,19 @@ from app.schemas.auth import (
     UserRole,
     UserResponse,
     MessageResponse,
+    UserSelfUpdateRequest,
 )
 from app.services.user_service import (
     create_user,
     authenticate_user,
+    get_user_by_embg,
     update_user_role,
     delete_user_by_email,
     get_all_users,
 )
 from app.core.security import create_access_token, ACCESS_TOKEN_EXPIRE_MINUTES, require_admin
+from app.core.security import get_current_user, verify_password, hash_password
+from app.models.user import User
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
@@ -32,10 +36,19 @@ async def register(user_data: UserRegister, db: Session = Depends(get_db)):
     
     - **email**: User's email address (must be unique)
     - **full_name**: User's full name
+    - **embg**: Optional unique social security number (13 digits)
     - **password**: Password (minimum 8 characters)
     
     Returns the created user object (without password).
     """
+    if user_data.embg:
+        existing_embg = get_user_by_embg(db, user_data.embg)
+        if existing_embg is not None:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="EMBG already registered"
+            )
+
     # Create user
     db_user = create_user(db, user_data)
     if db_user is None:
@@ -142,3 +155,73 @@ async def remove_user(
         )
 
     return {"message": f"User {email} deleted"}
+
+
+@router.get("/me", response_model=UserResponse)
+async def get_me(current_user: User = Depends(get_current_user)):
+    """Get current authenticated user's profile."""
+    return current_user
+
+
+@router.put("/me", response_model=UserResponse)
+async def update_me(
+    payload: UserSelfUpdateRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Update current authenticated user's account.
+
+    - email can be changed if unique
+    - password can be changed only with current_password
+    - embg can be set only if currently empty and must be unique
+    """
+
+    changed = False
+
+    if payload.email is not None and payload.email != current_user.email:
+        existing_email = db.query(User).filter(User.email == payload.email).first()
+        if existing_email is not None:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Email already registered",
+            )
+        current_user.email = payload.email
+        changed = True
+
+    if payload.new_password is not None:
+        if payload.current_password is None:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Current password is required to set a new password",
+            )
+        if not verify_password(payload.current_password, current_user.hashed_password):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Current password is incorrect",
+            )
+        current_user.hashed_password = hash_password(payload.new_password)
+        changed = True
+
+    if payload.embg is not None:
+        if current_user.embg is not None and payload.embg != current_user.embg:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="EMBG cannot be changed once set",
+            )
+
+        if current_user.embg is None:
+            existing_embg = db.query(User).filter(User.embg == payload.embg).first()
+            if existing_embg is not None:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="EMBG already registered",
+                )
+            current_user.embg = payload.embg
+            changed = True
+
+    if changed:
+        db.commit()
+        db.refresh(current_user)
+
+    return current_user

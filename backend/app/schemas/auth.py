@@ -7,6 +7,7 @@ class UserRegister(BaseModel):
     """Schema for user registration"""
     email: EmailStr
     full_name: str = Field(..., min_length=1, max_length=255)
+    embg: str | None = Field(default=None, min_length=13, max_length=13)
     password: str = Field(..., min_length=8)
     
     class Config:
@@ -14,6 +15,7 @@ class UserRegister(BaseModel):
             "example": {
                 "email": "user@example.com",
                 "full_name": "John Doe",
+                "embg": "1234567890123",
                 "password": "securepassword123"
             }
         }
@@ -86,6 +88,7 @@ class UserResponse(BaseModel):
     id: int
     email: str
     full_name: str | None
+    embg: str | None
     role: UserRole
     
     class Config:
@@ -102,3 +105,21 @@ class UserResponse(BaseModel):
 class UserRegisterResponse(UserResponse):
     """Schema for registration response"""
     pass
+
+
+class UserSelfUpdateRequest(BaseModel):
+    """Schema for authenticated user self-update"""
+    email: EmailStr | None = None
+    current_password: str | None = Field(default=None, min_length=8)
+    new_password: str | None = Field(default=None, min_length=8)
+    embg: str | None = Field(default=None, min_length=13, max_length=13)
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "email": "new_email@example.com",
+                "current_password": "currentpassword123",
+                "new_password": "newsecurepassword123",
+                "embg": "1234567890123"
+            }
+        }

@@ -3,7 +3,7 @@ from pydantic import Field, AliasChoices
 
 
 class Settings(BaseSettings):
-    postgresql_url: str = "postgresql+psycopg2://postgres:postgres@localhost:5432/ai_administration"
+    postgresql_url: str = "postgresql+psycopg2://postgres:postgres@localhost:5433/ai_administration"
     sqlite_url: str = "sqlite:///./app.db"
     use_sqlite: bool = False
 

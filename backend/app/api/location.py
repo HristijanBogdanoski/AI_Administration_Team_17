@@ -43,21 +43,22 @@ def list_service_locations(
     return list_locations(db, skip, limit)
 
 
-# Get single by ID
-
 @router.get(
-    "/{location_id}",
-    response_model=ServiceOfficeResponse,
-    summary="Get a single service office by ID",
+    "/map",
+    response_model=MapLocationResponse,
+    summary="Get map-ready coordinates for an institution",
 )
-def get_service_location_by_id(
-        location_id: int,
+def get_map_location(
+        institution: str = Query(..., min_length=1, description="Service name, service_id, or office name"),
+    address: str | None = Query(None, description="Optional address to geocode when no stored office exists"),
         db: Session = Depends(get_db),
-) -> ServiceOfficeResponse:
-    office = find_location_by_id(db, location_id)
-    if not office:
-        raise HTTPException(status_code=404, detail=f"Location with id {location_id} not found.")
-    return to_response(office)
+) -> MapLocationResponse:
+    try:
+        return get_map_ready_location(db, institution, address)
+    except OpenStreetMapGeocodingNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except OpenStreetMapGeocodingServiceError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
 
 
 # Get by service name or service ID
@@ -80,22 +81,21 @@ def get_service_location(
     return to_response(office)
 
 
+# Get single by ID
+
 @router.get(
-    "/map",
-    response_model=MapLocationResponse,
-    summary="Get map-ready coordinates for an institution",
+    "/{location_id}",
+    response_model=ServiceOfficeResponse,
+    summary="Get a single service office by ID",
 )
-def get_map_location(
-        institution: str = Query(..., min_length=1, description="Service name, service_id, or office name"),
-    address: str | None = Query(None, description="Optional address to geocode when no stored office exists"),
+def get_service_location_by_id(
+        location_id: int,
         db: Session = Depends(get_db),
-) -> MapLocationResponse:
-    try:
-        return get_map_ready_location(db, institution, address)
-    except OpenStreetMapGeocodingNotFoundError as exc:
-        raise HTTPException(status_code=404, detail=str(exc)) from exc
-    except OpenStreetMapGeocodingServiceError as exc:
-        raise HTTPException(status_code=502, detail=str(exc)) from exc
+) -> ServiceOfficeResponse:
+    office = find_location_by_id(db, location_id)
+    if not office:
+        raise HTTPException(status_code=404, detail=f"Location with id {location_id} not found.")
+    return to_response(office)
 
 
 # Post create

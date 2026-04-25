@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { useLocation } from 'react-router-dom';
 
 const LocationsPage = () => {
+  const routerLocation = useLocation();
   const [locations, setLocations] = useState([]);
   const [selectedLoc, setSelectedLoc] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
@@ -12,9 +14,22 @@ const LocationsPage = () => {
       try {
         setLoading(true);
         // Влечење податоци од твојот FastAPI бекенд
-        const res = await axios.get('/location');
-        setLocations(res.data);
-        if (res.data.length > 0) setSelectedLoc(res.data[0]);
+        const res = await axios.get('http://127.0.0.1:8000/location');
+        const data = res.data || [];
+        setLocations(data);
+
+        if (data.length > 0) {
+          const requestedServiceId = routerLocation.state?.serviceId;
+          const requestedServiceName = routerLocation.state?.serviceName;
+
+          const match = data.find((loc) => {
+            const byId = requestedServiceId && loc.service_id === requestedServiceId;
+            const byName = requestedServiceName && loc.service_name?.toLowerCase() === requestedServiceName.toLowerCase();
+            return byId || byName;
+          });
+
+          setSelectedLoc(match || data[0]);
+        }
       } catch (err) {
         console.error("Грешка при вчитување:", err);
       } finally {
@@ -22,7 +37,7 @@ const LocationsPage = () => {
       }
     };
     fetchLocations();
-  }, []);
+  }, [routerLocation.state]);
 
   // Филтрирање на листата
   const filteredLocations = locations.filter(loc => 
@@ -31,11 +46,16 @@ const LocationsPage = () => {
     loc.address.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  // ПАМЕТНО ГЕНЕРИРАЊЕ URL ЗА МАПА (БЕЗ КООРДИНАТИ)
+  // ГЕНЕРИРАЊЕ URL ЗА МАПА СО КООРДИНАТИ (lat,lng)
   const getMapUrl = (loc) => {
-    // Го енкодираме името и адресата за Google Maps да ги разбере во URL
-    const query = encodeURIComponent(`${loc.office_name}, ${loc.address}`);
-    return `https://maps.google.com/maps?q=${query}&t=&z=15&ie=UTF8&iwloc=&output=embed`;
+    const lat = loc?.coordinates?.lat;
+    const lng = loc?.coordinates?.lng;
+
+    if (lat == null || lng == null) {
+      return "about:blank";
+    }
+
+    return `https://www.google.com/maps?q=${lat},${lng}&z=15&output=embed`;
   };
 
   if (loading) return <div className="text-center mt-5 p-5 fw-bold">Се вчитуваат податоците од базата...</div>;

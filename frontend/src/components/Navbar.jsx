@@ -83,7 +83,20 @@ function Navbar() {
                 {/* Auth */}
                 {isLoggedIn ? (
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                        <span style={{ color: '#93c5fd', fontSize: '0.85rem' }}>{userEmail}</span>
+                        <button
+                            onClick={() => navigate('/profile')}
+                            style={{
+                                background: 'none',
+                                border: 'none',
+                                color: '#93c5fd',
+                                fontSize: '0.85rem',
+                                cursor: 'pointer',
+                                textDecoration: 'underline',
+                                padding: 0,
+                            }}
+                        >
+                            {userEmail}
+                        </button>
                         <button onClick={handleLogout} style={{ background: 'none', border: '1.5px solid #93c5fd', color: '#93c5fd', padding: '7px 16px', borderRadius: 8, fontWeight: 600, cursor: 'pointer', fontSize: '0.85rem' }}>
                             Одјави се
                         </button>

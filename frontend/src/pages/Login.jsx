@@ -1,32 +1,10 @@
     import React, { useState } from 'react';
     import { useNavigate } from 'react-router-dom';
 
-    const roles = [
-        {
-            id: 'citizen',
-            title: 'Граѓанин',
-            desc: 'Пристап до лични документи, даноци и социјални услуги',
-            icon: '👤',
-            color: '#1B3A6B',
-            bg: '#EFF6FF',
-            features: ['Лични документи', 'Даночна пријава', 'Социјална помош', 'Закажување термини'],
-        },
-        {
-            id: 'admin',
-            title: 'Администратор',
-            desc: 'Целосен административен пристап до системот',
-            icon: '🔑',
-            color: '#CE2028',
-            bg: '#FFF1F2',
-            features: ['Управување со корисници', 'Конфигурација', 'Системски логови', 'Безбедност'],
-        },
-    ];
-
     function Login() {
         const navigate = useNavigate();
         const [activeTab, setActiveTab] = useState('login');
         const [showPassword, setShowPassword] = useState(false);
-        const [selectedRole, setSelectedRole] = useState('citizen');
         const [loginForm, setLoginForm] = useState({ email: '', password: '' });
         const [registerForm, setRegisterForm] = useState({ name: '', email: '', password: '', confirm: '', embg: '' });
         const [loginSuccess, setLoginSuccess] = useState(false);
@@ -82,7 +60,12 @@
                 const response = await fetch('http://127.0.0.1:8000/auth/register', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email: registerForm.email, full_name: registerForm.name, password: registerForm.password }),
+                    body: JSON.stringify({
+                        email: registerForm.email,
+                        full_name: registerForm.name,
+                        embg: registerForm.embg || null,
+                        password: registerForm.password,
+                    }),
                 });
                 const data = await response.json();
                 if (response.ok) {
@@ -100,7 +83,6 @@
         const tabs = [
             { id: 'login', label: 'Најава' },
             { id: 'register', label: 'Регистрација' },
-            { id: 'roles', label: 'Улоги' },
         ];
 
         return (
@@ -372,11 +354,10 @@
                                         {/* EMBG */}
                                         <div style={{ marginBottom: 16 }}>
                                             <label style={{ display: 'block', fontSize: '0.875rem', color: '#374151', marginBottom: 6 }}>
-                                                ЕМБГ
+                                                ЕМБГ (опционално)
                                             </label>
                                             <input
                                                 type="text"
-                                                required
                                                 maxLength={13}
                                                 value={registerForm.embg}
                                                 onChange={(e) => setRegisterForm({ ...registerForm, embg: e.target.value })}
@@ -446,33 +427,6 @@
                                             </div>
                                         </div>
 
-                                        {/* Role selector */}
-                                        <div style={{ marginBottom: 16 }}>
-                                            <label style={{ display: 'block', fontSize: '0.875rem', color: '#374151', marginBottom: 8 }}>
-                                                Тип на корисник
-                                            </label>
-                                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
-                                                {roles.map((role) => (
-                                                    <button
-                                                        key={role.id}
-                                                        type="button"
-                                                        onClick={() => setSelectedRole(role.id)}
-                                                        style={{
-                                                            padding: '10px 6px', borderRadius: 10, cursor: 'pointer',
-                                                            border: `1px solid ${selectedRole === role.id ? role.color : '#e2e8f0'}`,
-                                                            background: selectedRole === role.id ? role.bg : 'transparent',
-                                                            color: selectedRole === role.id ? role.color : '#64748b',
-                                                            fontWeight: selectedRole === role.id ? 600 : 400,
-                                                            fontSize: '0.8rem', textAlign: 'center', transition: 'all 0.2s'
-                                                        }}
-                                                    >
-                                                        <div style={{ fontSize: 18, marginBottom: 4 }}>{role.icon}</div>
-                                                        {role.title}
-                                                    </button>
-                                                ))}
-                                            </div>
-                                        </div>
-
                                         {/* Terms */}
                                         <label style={{ display: 'flex', alignItems: 'flex-start', gap: 8, cursor: 'pointer', marginBottom: 20 }}>
                                             <input type="checkbox" required style={{ marginTop: 2 }} />
@@ -502,69 +456,6 @@
                         </div>
                     )}
 
-                    {/* Roles Tab */}
-                    {activeTab === 'roles' && (
-                        <div>
-                            <div style={{ textAlign: 'center', marginBottom: 32 }}>
-                                <h2 style={{ color: '#1e293b', fontSize: '1.25rem', fontWeight: 700, margin: '0 0 8px 0' }}>
-                                    Типови на Корисници
-                                </h2>
-                                <p style={{ color: '#64748b', fontSize: '0.875rem', margin: 0 }}>
-                                    Изберете го вашиот тип на пристап во системот
-                                </p>
-                            </div>
-
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: 24 }}>
-                                {roles.map((role) => (
-                                    <div
-                                        key={role.id}
-                                        onClick={() => setSelectedRole(role.id)}
-                                        style={{
-                                            background: '#fff', borderRadius: 16, padding: 24, textAlign: 'center',
-                                            border: `${selectedRole === role.id ? 2 : 1}px solid ${selectedRole === role.id ? role.color : '#e2e8f0'}`,
-                                            boxShadow: '0 1px 4px rgba(0,0,0,0.06)', cursor: 'pointer',
-                                            transition: 'all 0.2s'
-                                        }}
-                                    >
-                                        <div style={{
-                                            width: 64, height: 64, borderRadius: 16,
-                                            background: role.bg, display: 'flex',
-                                            alignItems: 'center', justifyContent: 'center',
-                                            margin: '0 auto 16px auto', fontSize: 32
-                                        }}>
-                                            {role.icon}
-                                        </div>
-                                        <h3 style={{ color: '#1e293b', fontSize: '1.1rem', fontWeight: 700, margin: '0 0 8px 0' }}>
-                                            {role.title}
-                                        </h3>
-                                        <p style={{ color: '#64748b', fontSize: '0.875rem', lineHeight: 1.6, margin: '0 0 20px 0' }}>
-                                            {role.desc}
-                                        </p>
-
-                                        <div style={{ textAlign: 'left', marginBottom: 20 }}>
-                                            {role.features.map((f) => (
-                                                <div key={f} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-                                                    <span style={{ color: role.color, fontSize: 14, flexShrink: 0 }}>✓</span>
-                                                    <span style={{ fontSize: '0.8rem', color: '#374151' }}>{f}</span>
-                                                </div>
-                                            ))}
-                                        </div>
-
-                                        <button
-                                            onClick={(e) => { e.stopPropagation(); setSelectedRole(role.id); switchTab('register'); }}
-                                            style={{
-                                                width: '100%', padding: '10px 0', borderRadius: 10, border: 'none',
-                                                background: role.color, color: '#fff', fontWeight: 600,
-                                                fontSize: '0.875rem', cursor: 'pointer'
-                                            }}
-                                        >
-                                            Регистрирај се
-                                        </button>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    )}
                 </div>
             </div>
         );

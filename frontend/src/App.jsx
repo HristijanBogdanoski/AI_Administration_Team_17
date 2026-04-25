@@ -6,6 +6,7 @@ import AiChat from './pages/AiChat';
 import FAQ from './pages/FAQ';
 import Locations from './pages/Locations';
 import Services from "./pages/Services";
+import Profile from './pages/Profile';
 
 function App() {
   return (
@@ -18,6 +19,7 @@ function App() {
           <Route path='/locations' element={<Locations/>}/>
           <Route path="/chat" element={<AiChat />} />
           <Route path="/services" element={<Services />} />
+          <Route path="/profile" element={<Profile />} />
         </Route>
       </Routes>
     </Router>

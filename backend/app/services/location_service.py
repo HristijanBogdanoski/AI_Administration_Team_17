@@ -139,12 +139,17 @@ def get_map_ready_location(
             matched_by="stored service office",
         )
 
-    search_query = build_skopje_query(institution, address)
+    # Institution not found in DB - geocode the address if provided, otherwise use institution name
+    if address:
+        search_query = build_skopje_query(address)
+    else:
+        search_query = build_skopje_query(institution)
+    
     geocoded = geocode_skopje_query(search_query)
     return MapLocationResponse(
         institution=institution.strip(),
         search_query=search_query,
-        resolved_address=address.strip() if address else search_query,
+        resolved_address=address.strip() if address else institution.strip(),
         display_name=geocoded.display_name,
         coordinates=CoordinatesSchema(lat=geocoded.lat, lng=geocoded.lng),
         source="openstreetmap",

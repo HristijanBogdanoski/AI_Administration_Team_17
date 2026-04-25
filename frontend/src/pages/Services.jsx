@@ -1,6 +1,32 @@
-import React, {useState} from "react";
+import React, {useEffect, useState} from "react";
 import {useNavigate} from "react-router-dom";
 import '../index.css';
+
+const CATEGORY_TO_TAG = {
+    documents: "Документи",
+    taxes: "Даноци",
+    social: "Социјални",
+    business: "Деловни",
+    education: "Услуги",
+    utilities: "Институции"
+};
+
+const CATEGORY_TO_COLOR = {
+    documents: "#1B3A6B",
+    taxes: "#CE2028",
+    social: "rgb(212,160,23)",
+    business: "rgb(22,101,52)",
+    education: "#8B5CF6",
+    utilities: "rgb(3,105,161)"
+};
+
+const tags = ["Сите", "Документи", "Даноци", "Социјални", "Деловни", "Услуги", "Институции"];
+
+function toDisplayTime(days) {
+    if (days === null || days === undefined) return "Зависи";
+    if (days === 0) return "Веднаш";
+    return `${days} работни дена`;
+}
 
 export default function Services() {
     const navigate = useNavigate();
@@ -17,6 +43,8 @@ export default function Services() {
     const [selectedTag, setSelectedTag] = useState("Сите");
     const [search, setSearch] = useState("");
     const [selectedService, setSelectedService] = useState(null);
+    const [services, setServices] = useState([]);
+    const [loadingServices, setLoadingServices] = useState(true);
 
     // --- AUTHENTICATION HANDLERS ---
     const handleAuth = async (e) => {
@@ -51,97 +79,57 @@ export default function Services() {
         }
     };
 
-    // --- DATASET ---
-    const services = [
-        {
-            name: "Личнa Карта",
-            desc: "Поднесете барање за нова или обнова на лична карта",
-            tag: "Документи",
-            color: "#1B3A6B",
-            time: "3 работни дена",
-            details: ["Важи 10 години", "Лична карта + биометрика", "Стандарден рок 3 дена"]
-        },
-        {
-            name: "Пасош",
-            desc: "Барање за пасош и биометриска патна исправа",
-            tag: "Документи",
-            color: "#1B3A6B",
-            time: "15 работни дена",
-            details: ["Биометриски пасош", "Важност 10 години", "Итна услуга достапна"]
-        },
-        {
-            name: "Возачка дозвола",
-            desc: "Издавање и обнова на возачка дозвола",
-            tag: "Документи",
-            color: "#1B3A6B",
-            time: "7 работни дена",
-            details: ["Категории А, B, C, D", "Лекарско уверение", "Закажи во центарот"]
-        },
-        {
-            name: "Даночна Пријава",
-            desc: "Даночна пријава и плаќања",
-            tag: "Даноци",
-            color: "#CE2028",
-            time: "Веднаш",
-            details: ["До 15 март секоја година", "Онлајн поднесување", "Автоматски пресметки"]
-        },
-        {
-            name: "Уплата на Даноци",
-            desc: "Плаќање на даноци",
-            tag: "Даноци",
-            color: "#DC2626",
-            time: "Веднаш",
-            details: ["Онлајн плаќање", "Потврда во реално време", "Историја на уплати"]
-        },
-        {
-            name: "Социјална помош",
-            desc: "Барање за финансиска социјална помош",
-            tag: "Социјални",
-            color: "rgb(212,160,23)",
-            time: "30 дена",
-            details: ["Проверка на услови", "Месечна исплата", "Центар за соц. работа"]
-        },
-        {
-            name: "Здравствено осигурување",
-            desc: "Пријава и обнова на здравствено осигурување",
-            tag: "Социјални",
-            color: "rgb(212,160,23)",
-            time: "7 дена",
-            details: ["Задолжително осигурување", "Фонд за здравство", "Семејна пријава"]
-        },
-        {
-            name: "Регистрација Фирма",
-            desc: "Отворање и регистрација на деловен субјект",
-            tag: "Деловни",
-            color: "rgb(22,101,52)",
-            time: "5 работни дена",
-            details: ["ЦРМ регистрација", "ДОО, ДООЕЛ, АД", "Еден шалтер систем"]
-        },
-        {
-            name: "Образование",
-            desc: "Запис во образовни институции и стипендии",
-            tag: "Услуги",
-            color: "#8B5CF6",
-            time: "Зависи",
-            details: ["Државни стипендии", "Онлајн запис", "Нострификација"]
-        },
-        {
-            name: "Комунални Услуги",
-            desc: "Плаќање на сметки за струја, вода, греење",
-            tag: "Институции",
-            color: "rgb(3,105,161)",
-            time: "5 работни дена",
-            details: ["Сите комуналии", "Автоматски плаќања", "Историја на сметки"]
-        },
-    ];
+    useEffect(() => {
+        const fetchServices = async () => {
+            try {
+                setLoadingServices(true);
+                const res = await fetch("http://127.0.0.1:8000/services");
+                if (!res.ok) {
+                    throw new Error("Неуспешно вчитување на услуги");
+                }
 
-    const tags = ["Сите", "Документи", "Даноци", "Социјални", "Деловни", "Услуги", "Институции"];
+                const data = await res.json();
+                const mapped = data.map((service) => ({
+                    id: service.id,
+                    service_id: service.service_id,
+                    name: service.name,
+                    desc: service.description || "Нема опис за оваа услуга.",
+                    tag: CATEGORY_TO_TAG[service.category] || "Услуги",
+                    color: CATEGORY_TO_COLOR[service.category] || "#1B3A6B",
+                    time: toDisplayTime(service.processing_time_days),
+                    details: Array.isArray(service.details) ? service.details : [],
+                    location: service.location,
+                }));
+
+                setServices(mapped);
+            } catch (err) {
+                console.error("Services fetch failed:", err);
+                setServices([]);
+            } finally {
+                setLoadingServices(false);
+            }
+        };
+
+        fetchServices();
+    }, []);
 
     const filtered = services.filter((s) => {
         const matchTag = selectedTag === "Сите" || s.tag === selectedTag;
         const matchSearch = s.name.toLowerCase().includes(search.toLowerCase());
         return matchTag && matchSearch;
     });
+
+    useEffect(() => {
+        if (!selectedService && filtered.length > 0) {
+            setSelectedService(filtered[0]);
+        }
+        if (selectedService && filtered.length > 0 && !filtered.some((s) => s.id === selectedService.id)) {
+            setSelectedService(filtered[0]);
+        }
+        if (filtered.length === 0) {
+            setSelectedService(null);
+        }
+    }, [filtered, selectedService]);
 
     return (
         <div style={{backgroundColor: "#f8fafc", minHeight: "100vh"}}>
@@ -368,7 +356,9 @@ export default function Services() {
 
                 {/* LEFT COLUMN: LIST */}
                 <div>
-                    <h3 style={{marginBottom: "20px", color: "#1e293b"}}>{filtered.length} Пронајдени услуги</h3>
+                    <h3 style={{marginBottom: "20px", color: "#1e293b"}}>
+                        {loadingServices ? "Се вчитуваат услуги..." : `${filtered.length} Пронајдени услуги`}
+                    </h3>
                     <div style={{display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "20px"}}>
                         {filtered.map((s, i) => (
                             <div
@@ -502,30 +492,12 @@ export default function Services() {
                                     {/* Secondary Button - Location */}
                                     <button
                                         onClick={async () => {
-                                            try {
-                                                const res = await fetch(
-                                                    `http://127.0.0.1:8000/location/service?service=${encodeURIComponent(selectedService.name)}`
-                                                );
-
-                                                if (!res.ok) {
-                                                    const err = await res.json();
-                                                    alert(err.detail || "Грешка при вчитување локација");
-                                                    return;
-                                                }
-
-                                                const data = await res.json();
-
-                                                // For now just show it (later you can replace with Location.jsx or modal)
-                                                console.log("LOCATION DATA:", data);
-
-                                                alert(
-                                                    `Локација: ${data.address || "Нема адреса"}`
-                                                );
-
-                                            } catch (err) {
-                                                console.error("Location fetch failed:", err);
-                                                alert("Не може да се поврзе со серверот");
-                                            }
+                                            navigate('/locations', {
+                                                state: {
+                                                    serviceId: selectedService.service_id || null,
+                                                    serviceName: selectedService.name || null,
+                                                },
+                                            });
                                         }}
                                         style={{
                                             background: "transparent",

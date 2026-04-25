@@ -19,6 +19,7 @@ def create_user(db: Session, user_data: UserRegister) -> User | None:
         db_user = User(
             email=user_data.email,
             full_name=user_data.full_name,
+            embg=user_data.embg,
             hashed_password=hash_password(user_data.password),
         )
         db.add(db_user)
@@ -48,6 +49,11 @@ def authenticate_user(db: Session, email: str, password: str) -> User | None:
 def get_user_by_email(db: Session, email: str) -> User | None:
     """Get a user by email"""
     return db.query(User).filter(User.email == email).first()
+
+
+def get_user_by_embg(db: Session, embg: str) -> User | None:
+    """Get a user by EMBG"""
+    return db.query(User).filter(User.embg == embg).first()
 
 
 def get_user_by_id(db: Session, user_id: int) -> User | None:
