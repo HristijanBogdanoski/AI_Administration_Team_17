@@ -13,6 +13,7 @@ if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
 
 from app.db.session import SessionLocal
+from app.models.service import Service
 from app.models.service_office import ServiceOffice
 
 OFFICES = [
@@ -110,15 +111,37 @@ OFFICES = [
 def seed() -> None:
     db = SessionLocal()
     try:
-        existing_ids = {row.service_id for row in db.query(ServiceOffice.service_id).all()}
-        new_offices = [
-            ServiceOffice(**data) for data in OFFICES if data["service_id"] not in existing_ids
-        ]
+        # Load existing services and offices
+        existing_services = {row.service_id for row in db.query(Service.service_id).all()}
+        existing_office_ids = {row.service_id for row in db.query(ServiceOffice.service_id).all()}
+        
+        new_offices = []
+        skipped = 0
+        
+        for data in OFFICES:
+            service_id = data["service_id"]
+            
+            # Skip if service doesn't exist
+            if service_id not in existing_services:
+                print(f"⚠ Skipping office for '{service_id}' – service does not exist.")
+                skipped += 1
+                continue
+            
+            # Skip if office already exists
+            if service_id in existing_office_ids:
+                continue
+            
+            new_offices.append(ServiceOffice(**data))
+        
         if new_offices:
             db.add_all(new_offices)
             db.commit()
-            print(f"Seeded {len(new_offices)} service office(s).")
-        else:
+            print(f"✓ Seeded {len(new_offices)} service office(s).")
+        
+        if skipped > 0:
+            print(f"⚠ Skipped {skipped} office(s) – parent service not found.")
+        
+        if not new_offices and skipped == 0:
             print("All service offices already present – nothing to seed.")
     finally:
         db.close()

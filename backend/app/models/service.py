@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Enum, ForeignKey, Integer, JSON, String, Text
+from sqlalchemy import Column, Enum, Integer, JSON, String, Text
 
 from app.db.session import Base
 from app.models.enums import ServiceCategory
@@ -8,7 +8,7 @@ class Service(Base):
     __tablename__ = "services"
 
     id = Column(Integer, primary_key=True, index=True)
-    service_id = Column(String(100), ForeignKey("service_offices.service_id"), nullable=True, index=True)
+    service_id = Column(String(100), nullable=False, unique=True, index=True)
 
     name = Column(String(255), nullable=False, index=True)
     category = Column(
@@ -20,4 +20,3 @@ class Service(Base):
 
     processing_time_days = Column(Integer, nullable=True)
     details = Column(JSON, nullable=False, default=list)
-    location = Column(String(255), nullable=True) #change this to Location model later

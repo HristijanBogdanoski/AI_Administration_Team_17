@@ -1,6 +1,7 @@
 from sqlalchemy import func, or_
 from sqlalchemy.orm import Session
 
+from app.models.service import Service
 from app.models.service_office import ServiceOffice
 from app.schemas.service_office import (
     CoordinatesSchema,
@@ -38,9 +39,9 @@ def get_service_location_by_id(db: Session, location_id: int) -> ServiceOffice |
     return db.query(ServiceOffice).filter(ServiceOffice.id == location_id).first()
 
 
-def get_service_location(db: Session, service: str) -> ServiceOffice | None:
+def get_service_locations(db: Session, service: str) -> list[ServiceOfficeResponse]:
     normalized = service.strip()
-    return (
+    offices = (
         db.query(ServiceOffice)
         .filter(
             or_(
@@ -50,8 +51,10 @@ def get_service_location(db: Session, service: str) -> ServiceOffice | None:
                 func.lower(ServiceOffice.address) == normalized.lower(),
             )
         )
-        .first()
+        .order_by(ServiceOffice.id.asc())
+        .all()
     )
+    return [to_response(o) for o in offices]
 
 
 def get_service_location_by_identifier(db: Session, institution: str) -> ServiceOffice | None:
@@ -70,8 +73,8 @@ def get_service_location_by_identifier(db: Session, institution: str) -> Service
     )
 
 
-def service_location_exists_by_service_id(db: Session, service_id: str) -> bool:
-    return db.query(ServiceOffice).filter(ServiceOffice.service_id == service_id).first() is not None
+def service_exists_by_service_id(db: Session, service_id: str) -> bool:
+    return db.query(Service).filter(Service.service_id == service_id).first() is not None
 
 
 def create_service_location(db: Session, payload: ServiceOfficeCreate) -> ServiceOffice:

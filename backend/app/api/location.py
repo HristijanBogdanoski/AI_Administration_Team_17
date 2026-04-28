@@ -13,11 +13,11 @@ from app.services.location_service import (
     create_service_location as create_location,
     delete_service_location as delete_location,
     get_map_ready_location,
-    get_service_location as find_location_by_service,
+    get_service_locations as find_locations_by_service,
     get_service_location_by_id as find_location_by_id,
     list_service_locations as list_locations,
     save_service_location,
-    service_location_exists_by_service_id,
+    service_exists_by_service_id,
     to_response,
 )
 from app.services.openstreetmap_service import (
@@ -65,20 +65,20 @@ def get_map_location(
 
 @router.get(
     "/service",
-    response_model=ServiceOfficeResponse,
-    summary="Get office location by service name or service ID",
+    response_model=list[ServiceOfficeResponse],
+    summary="Get office locations by service name or service ID",
 )
 def get_service_location(
         service: str = Query(..., min_length=1, description="Service name or service_id"),
         db: Session = Depends(get_db),
-) -> ServiceOfficeResponse:
-    office = find_location_by_service(db, service)
-    if not office:
+) -> list[ServiceOfficeResponse]:
+    offices = find_locations_by_service(db, service)
+    if not offices:
         raise HTTPException(
             status_code=404,
-            detail=f"No office found for service '{service}'.",
+            detail=f"No offices found for service '{service}'.",
         )
-    return to_response(office)
+    return offices
 
 
 # Get single by ID
@@ -110,10 +110,10 @@ def create_service_location(
         payload: ServiceOfficeCreate,
         db: Session = Depends(get_db),
 ) -> ServiceOfficeResponse:
-    if service_location_exists_by_service_id(db, payload.service_id):
+    if not service_exists_by_service_id(db, payload.service_id):
         raise HTTPException(
-            status_code=409,
-            detail=f"A location with service_id '{payload.service_id}' already exists.",
+            status_code=404,
+            detail=f"Service with service_id '{payload.service_id}' does not exist.",
         )
     office = create_location(db, payload)
     return to_response(office)

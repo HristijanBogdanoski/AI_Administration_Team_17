@@ -1,4 +1,4 @@
-"""Seed services from SERVICE_META and attach office locations when available.
+"""Seed services with metadata from SERVICE_META.
 
 Usage:
     python seed_services.py
@@ -14,7 +14,6 @@ if str(ROOT_DIR) not in sys.path:
 from app.db.session import SessionLocal
 from app.models.enums import ServiceCategory
 from app.models.service import Service
-from app.models.service_office import ServiceOffice
 
 
 # Small metadata map from the frontend dataset, keyed by service_id from ServiceOffice.
@@ -78,51 +77,26 @@ SERVICE_META = {
 }
 
 
-def _upsert_service(existing_by_name: dict[str, Service], payload: dict) -> tuple[int, int, Service]:
-    existing = existing_by_name.get(payload["name"].lower())
-    if existing is None:
-        created = Service(**payload)
-        existing_by_name[payload["name"].lower()] = created
-        return 1, 0, created
-
-    changed = False
-    for key, value in payload.items():
-        if getattr(existing, key) != value:
-            setattr(existing, key, value)
-            changed = True
-    return 0, int(changed), existing
-
-
 def seed() -> None:
     db = SessionLocal()
     try:
-        existing_by_name = {row.name.lower(): row for row in db.query(Service).all()}
+        existing_by_service_id = {row.service_id: row for row in db.query(Service).all()}
         created = 0
         updated = 0
 
-        offices_by_service_id = {
-            office.service_id: office for office in db.query(ServiceOffice).all()
-        }
-
         for service_id, meta in SERVICE_META.items():
-            office = offices_by_service_id.get(service_id)
-            payload = {
-                "service_id": service_id,
-                "name": meta["name"],
-                "category": meta["category"],
-                "description": meta["description"],
-                "processing_time_days": meta.get("processing_time_days"),
-                "details": meta["details"],
-                "location": (
-                    f"{office.latitude}, {office.longitude}" if office else None
-                ),
-            }
-
-            c, u, service = _upsert_service(existing_by_name, payload)
-            created += c
-            updated += u
-            if c:
+            if service_id in existing_by_service_id:
+                service = existing_by_service_id[service_id]
+                changed = False
+                for key, value in meta.items():
+                    if getattr(service, key) != value:
+                        setattr(service, key, value)
+                        changed = True
+                updated += int(changed)
+            else:
+                service = Service(service_id=service_id, **meta)
                 db.add(service)
+                created += 1
 
         db.commit()
         print(f"Services seed complete. Created: {created}, Updated: {updated}")
