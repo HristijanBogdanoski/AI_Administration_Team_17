@@ -11,6 +11,9 @@ function Profile() {
     const [form, setForm] = useState({
         email: '',
         embg: '',
+        address: '',
+        phone_number: '',
+        gender: '',
         currentPassword: '',
         newPassword: '',
         confirmNew: '',
@@ -40,6 +43,9 @@ function Profile() {
                     ...prev,
                     email: data.email || '',
                     embg: data.embg || '',
+                    address: data.address || '',
+                    phone_number: data.phone_number || '',
+                    gender: data.gender || '',
                 }));
                 setEmbgLocked(Boolean(data.embg));
             } catch {
@@ -68,13 +74,18 @@ function Profile() {
             return;
         }
 
-        const payload = {};
-        if (form.email) payload.email = form.email;
+        const payload = {
+            email: form.email || null,
+            embg: embgLocked ? null : (form.embg || null),
+            address: form.address || null,
+            phone_number: form.phone_number || null,
+            gender: form.gender || null,
+        };
         if (form.newPassword) {
             payload.current_password = form.currentPassword;
             payload.new_password = form.newPassword;
         }
-        if (!embgLocked && form.embg) payload.embg = form.embg;
+        if (embgLocked) delete payload.embg;
 
         if (Object.keys(payload).length === 0) {
             setError('Нема промени за зачувување.');
@@ -102,6 +113,9 @@ function Profile() {
                 ...prev,
                 email: data.email || prev.email,
                 embg: data.embg || prev.embg,
+                address: data.address || prev.address,
+                phone_number: data.phone_number || prev.phone_number,
+                gender: data.gender || prev.gender,
                 currentPassword: '',
                 newPassword: '',
                 confirmNew: '',
@@ -193,6 +207,49 @@ function Profile() {
                                 border: '1px solid #e2e8f0', background: embgLocked ? '#F1F5F9' : '#F8FAFC', boxSizing: 'border-box'
                             }}
                         />
+                    </div>
+
+                    <div style={{ marginBottom: 16 }}>
+                        <label style={{ display: 'block', marginBottom: 6, fontSize: '0.875rem', color: '#374151' }}>Адреса (опционално)</label>
+                        <input
+                            type="text"
+                            value={form.address}
+                            onChange={(e) => setForm({ ...form, address: e.target.value })}
+                            placeholder="Улица, број, град"
+                            style={{
+                                width: '100%', padding: '12px 14px', borderRadius: 10,
+                                border: '1px solid #e2e8f0', background: '#F8FAFC', boxSizing: 'border-box'
+                            }}
+                        />
+                    </div>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
+                        <div>
+                            <label style={{ display: 'block', marginBottom: 6, fontSize: '0.875rem', color: '#374151' }}>Телефон (опционално)</label>
+                            <input
+                                type="text"
+                                value={form.phone_number}
+                                onChange={(e) => setForm({ ...form, phone_number: e.target.value })}
+                                placeholder="+389 ..."
+                                style={{
+                                    width: '100%', padding: '12px 14px', borderRadius: 10,
+                                    border: '1px solid #e2e8f0', background: '#F8FAFC', boxSizing: 'border-box'
+                                }}
+                            />
+                        </div>
+                        <div>
+                            <label style={{ display: 'block', marginBottom: 6, fontSize: '0.875rem', color: '#374151' }}>Пол (опционално)</label>
+                            <input
+                                type="text"
+                                value={form.gender}
+                                onChange={(e) => setForm({ ...form, gender: e.target.value })}
+                                placeholder="Машки / Женски / ..."
+                                style={{
+                                    width: '100%', padding: '12px 14px', borderRadius: 10,
+                                    border: '1px solid #e2e8f0', background: '#F8FAFC', boxSizing: 'border-box'
+                                }}
+                            />
+                        </div>
                     </div>
 
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>

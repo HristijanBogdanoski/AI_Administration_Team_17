@@ -20,6 +20,9 @@ def create_user(db: Session, user_data: UserRegister) -> User | None:
             email=user_data.email,
             full_name=user_data.full_name,
             embg=user_data.embg,
+            address=user_data.address,
+            phone_number=user_data.phone_number,
+            gender=user_data.gender,
             hashed_password=hash_password(user_data.password),
         )
         db.add(db_user)

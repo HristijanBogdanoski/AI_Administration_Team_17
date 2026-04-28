@@ -9,6 +9,9 @@ function Home() {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [fullName, setFullName] = useState("");
+    const [address, setAddress] = useState("");
+    const [phoneNumber, setPhoneNumber] = useState("");
+    const [gender, setGender] = useState("");
     const [choiceEmail, setChoiceEmail] = useState("");
     const [showChat, setShowChat] = useState(false);
     const [chatMessages, setChatMessages] = useState([]);
@@ -44,7 +47,7 @@ function Home() {
         const endpoint = authMode === "login" ? "/auth/login" : "/auth/register";
         const payload = authMode === "login"
             ? {username: email, password: password} // We map your 'email' state to the 'username' key
-            : {email, full_name: fullName, password};
+            : {email, full_name: fullName, address, phone_number: phoneNumber, gender, password};
         try {
             const response = await fetch(`http://127.0.0.1:8000${endpoint}`, {
                 method: "POST",
@@ -219,6 +222,7 @@ function Home() {
                         </div>
                         <form onSubmit={handleAuth} className="auth-form">
                             {authMode === "register" && (
+                                <>
                                 <input
                                     type="text"
                                     placeholder="Целосно име"
@@ -226,6 +230,25 @@ function Home() {
                                     onChange={(e) => setFullName(e.target.value)}
                                     required
                                 />
+                                <input
+                                    type="text"
+                                    placeholder="Адреса (опционално)"
+                                    value={address}
+                                    onChange={(e) => setAddress(e.target.value)}
+                                />
+                                <input
+                                    type="text"
+                                    placeholder="Телефон (опционално)"
+                                    value={phoneNumber}
+                                    onChange={(e) => setPhoneNumber(e.target.value)}
+                                />
+                                <input
+                                    type="text"
+                                    placeholder="Пол (опционално)"
+                                    value={gender}
+                                    onChange={(e) => setGender(e.target.value)}
+                                />
+                                </>
                             )}
                             <input
                                 type="email"

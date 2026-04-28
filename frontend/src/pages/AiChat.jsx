@@ -41,6 +41,22 @@ function AiChat() {
     const [messages, setMessages] = useState(initialMessages);
     const [input, setInput] = useState('');
     const [typing, setTyping] = useState(false);
+    const [services, setServices] = useState([]);
+    const [selectedServiceId, setSelectedServiceId] = useState('');
+    const [selectedFields, setSelectedFields] = useState({
+        full_name: true,
+        email: true,
+        embg: true,
+        address: false,
+        phone_number: false,
+        gender: false,
+    });
+    const [docStatus, setDocStatus] = useState('');
+    const [selectedFormat, setSelectedFormat] = useState('txt');
+    const [preparedDocumentUrl, setPreparedDocumentUrl] = useState('');
+    const [preparedDocumentName, setPreparedDocumentName] = useState('');
+    const [preparedServiceId, setPreparedServiceId] = useState('');
+    const fileInputRef = useRef(null);
     const msgsRef = useRef(null);
 
     useEffect(() => {
@@ -49,7 +65,165 @@ function AiChat() {
         }
     }, [messages, typing]);
 
+    useEffect(() => {
+        const loadServices = async () => {
+            try {
+                const response = await fetch('http://127.0.0.1:8000/services');
+                const data = await response.json();
+                if (response.ok && Array.isArray(data)) {
+                    setServices(data);
+                    if (data.length > 0) {
+                        setSelectedServiceId(data[0].service_id);
+                    }
+                }
+            } catch {
+                setDocStatus('Не успеа да се вчита листата со услуги.');
+            }
+        };
+
+        loadServices();
+    }, []);
+
     const addMsg = (msg) => setMessages(prev => [...prev, msg]);
+
+    const downloadBlob = (blob, filename) => {
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        window.URL.revokeObjectURL(url);
+    };
+
+    const handleDownloadBlank = async () => {
+        if (!selectedServiceId) return;
+        setDocStatus('Се подготвува празниот документ...');
+        try {
+            const response = await fetch(`http://127.0.0.1:8000/service-document-templates/${selectedServiceId}/download?format=${encodeURIComponent(selectedFormat)}`);
+            if (!response.ok) {
+                setDocStatus('Неуспешно преземање на документот.');
+                return;
+            }
+            const blob = await response.blob();
+            const ext = selectedFormat === 'pdf' ? 'pdf' : selectedFormat === 'docx' ? 'docx' : 'txt';
+            downloadBlob(blob, `${selectedServiceId}-application-form.${ext}`);
+            setDocStatus('Празниот документ е преземен.');
+        } catch {
+            setDocStatus('Грешка при преземање на документот.');
+        }
+    };
+
+    const triggerUpload = () => {
+        if (fileInputRef.current) {
+            fileInputRef.current.click();
+        }
+    };
+
+    const handleSelectedFile = async (event) => {
+        const file = event.target.files?.[0];
+        event.target.value = '';
+        if (!file) return;
+
+        const token = localStorage.getItem('token');
+        if (!token) {
+            setDocStatus('Потребна е најава за пополнување документ.');
+            return;
+        }
+
+        const selectedFieldList = Object.entries(selectedFields)
+            .filter(([, enabled]) => enabled)
+            .map(([key]) => key);
+
+        if (selectedFieldList.length === 0) {
+            setDocStatus('Изберете барем едно поле за пополнување.');
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('selected_fields', JSON.stringify(selectedFieldList));
+        formData.append('output_format', selectedFormat);
+
+        setDocStatus('Се чита и пополнува прикачениот документ...');
+        setPreparedDocumentUrl('');
+        setPreparedDocumentName('');
+        setPreparedServiceId('');
+
+        try {
+            const response = await fetch('http://127.0.0.1:8000/service-document-templates/upload-fill', {
+                method: 'POST',
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+                body: formData,
+            });
+
+            if (!response.ok) {
+                const data = await response.json().catch(() => ({}));
+                setDocStatus(data.detail || 'Неуспешно пополнување на документот.');
+                return;
+            }
+
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const filename = response.headers.get('Content-Disposition')?.match(/filename="(.+?)"/)?.[1] || 'filled-document.txt';
+            setPreparedDocumentUrl(url);
+            setPreparedDocumentName(filename);
+            setPreparedServiceId(response.headers.get('X-Detected-Service-Id') || '');
+            setDocStatus('Документот е подготвен. Сега може да го преземете.');
+        } catch {
+            setDocStatus('Грешка при прикачување и пополнување на документот.');
+        }
+    };
+
+    const downloadPreparedDocument = () => {
+        if (!preparedDocumentUrl) return;
+        const link = document.createElement('a');
+        link.href = preparedDocumentUrl;
+        link.download = preparedDocumentName || 'filled-document.txt';
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+    };
+
+    const handleAutoFillDownload = async () => {
+        const token = localStorage.getItem('token');
+        if (!token) {
+            setDocStatus('Потребна е најава за авто-полнење.');
+            return;
+        }
+        if (!selectedServiceId) return;
+
+        const selectedFieldList = Object.entries(selectedFields)
+            .filter(([, enabled]) => enabled)
+            .map(([key]) => key);
+
+        setDocStatus('Се подготвува авто-полнет документ...');
+        try {
+            const response = await fetch(`http://127.0.0.1:8000/service-document-templates/${selectedServiceId}/auto-fill?format=${encodeURIComponent(selectedFormat)}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${token}`,
+                },
+                body: JSON.stringify({ selected_fields: selectedFieldList }),
+            });
+
+            if (!response.ok) {
+                setDocStatus('Неуспешно авто-полнење на документот.');
+                return;
+            }
+
+            const blob = await response.blob();
+            const ext = selectedFormat === 'pdf' ? 'pdf' : selectedFormat === 'docx' ? 'docx' : 'txt';
+            downloadBlob(blob, `${selectedServiceId}-application-form-filled.${ext}`);
+            setDocStatus('Авто-полнетиот документ е преземен.');
+        } catch {
+            setDocStatus('Грешка при авто-полнење.');
+        }
+    };
 
     const send = async (text) => {
         const query = (text || input).trim();
@@ -123,6 +297,59 @@ function AiChat() {
                                     {t}
                                 </button>
                             ))}
+                        </div>
+                    </div>
+                    <div style={{ background: '#fff', borderRadius: 16, border: '1px solid #e2e8f0', overflow: 'hidden' }}>
+                        <div style={{ padding: '14px 18px 12px', fontSize: '0.7rem', fontWeight: 700, color: '#64748b', letterSpacing: '0.12em', textTransform: 'uppercase', borderBottom: '1px solid #e2e8f0' }}>Документи</div>
+                        <div style={{ padding: 14, display: 'grid', gap: 10 }}>
+                            <p style={{ margin: 0, fontSize: '0.78rem', color: '#64748b', lineHeight: 1.5 }}>
+                                Прво преземете празен документ. Изберете кои полиња сакате да бидат пополнети, па кликнете на „Прикачи документ за пополнување“. Потоа кликнете на „Преземи пополнет документ“. 
+                            </p>
+                            <select
+                                value={selectedServiceId}
+                                onChange={(e) => setSelectedServiceId(e.target.value)}
+                                style={{ width: '100%', border: '1.5px solid #e2e8f0', borderRadius: 10, padding: '10px 12px', fontSize: '0.82rem', background: '#f8fafc' }}
+                            >
+                                {services.map((service) => (
+                                    <option key={service.id} value={service.service_id}>
+                                        {service.name}
+                                    </option>
+                                ))}
+                            </select>
+
+                            <select
+                                value={selectedFormat}
+                                onChange={(e) => setSelectedFormat(e.target.value)}
+                                style={{ width: '100%', border: '1.5px solid #e2e8f0', borderRadius: 10, padding: '8px 10px', fontSize: '0.82rem', background: '#fff' }}
+                            >
+                                <option value="txt">TXT (плоски текст)</option>
+                                <option value="pdf">PDF (принт пријателски)</option>
+                                <option value="docx">Word (.docx)</option>
+                            </select>
+
+                            <div style={{ display: 'grid', gap: 6, fontSize: '0.8rem', color: '#334155' }}>
+                                <label><input type="checkbox" checked={selectedFields.full_name} onChange={(e) => setSelectedFields(prev => ({ ...prev, full_name: e.target.checked }))} /> Име и презиме</label>
+                                <label><input type="checkbox" checked={selectedFields.email} onChange={(e) => setSelectedFields(prev => ({ ...prev, email: e.target.checked }))} /> Е-маил</label>
+                                <label><input type="checkbox" checked={selectedFields.embg} onChange={(e) => setSelectedFields(prev => ({ ...prev, embg: e.target.checked }))} /> ЕМБГ</label>
+                                <label><input type="checkbox" checked={selectedFields.address} onChange={(e) => setSelectedFields(prev => ({ ...prev, address: e.target.checked }))} /> Адреса</label>
+                                <label><input type="checkbox" checked={selectedFields.phone_number} onChange={(e) => setSelectedFields(prev => ({ ...prev, phone_number: e.target.checked }))} /> Телефон</label>
+                                <label><input type="checkbox" checked={selectedFields.gender} onChange={(e) => setSelectedFields(prev => ({ ...prev, gender: e.target.checked }))} /> Пол</label>
+                            </div>
+
+                            <button onClick={handleDownloadBlank} style={{ width: '100%', background: '#EFF6FF', color: '#1B3A6B', border: '1px solid #bfdbfe', padding: '10px 12px', borderRadius: 10, fontSize: '0.82rem', fontWeight: 700, cursor: 'pointer' }}>
+                                Преземи празен документ
+                            </button>
+                            <button onClick={triggerUpload} style={{ width: '100%', background: '#1B3A6B', color: '#fff', border: 'none', padding: '10px 12px', borderRadius: 10, fontSize: '0.82rem', fontWeight: 700, cursor: 'pointer' }}>
+                                Прикачи документ за пополнување
+                            </button>
+                            <input ref={fileInputRef} type="file" accept=".txt" onChange={handleSelectedFile} style={{ display: 'none' }} />
+                            {preparedDocumentUrl && (
+                                <button onClick={downloadPreparedDocument} style={{ width: '100%', background: '#166534', color: '#fff', border: 'none', padding: '10px 12px', borderRadius: 10, fontSize: '0.82rem', fontWeight: 700, cursor: 'pointer' }}>
+                                    Преземи пополнет документ
+                                </button>
+                            )}
+                            {preparedServiceId && <div style={{ fontSize: '0.75rem', color: '#166534' }}>Идентификувана услуга: {preparedServiceId}</div>}
+                            {docStatus && <div style={{ fontSize: '0.75rem', color: '#64748b', lineHeight: 1.4 }}>{docStatus}</div>}
                         </div>
                     </div>
                 </div>

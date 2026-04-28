@@ -45,6 +45,7 @@ export default function Services() {
     const [selectedService, setSelectedService] = useState(null);
     const [services, setServices] = useState([]);
     const [loadingServices, setLoadingServices] = useState(true);
+    const [selectedFormat, setSelectedFormat] = useState('txt');
 
     // --- AUTHENTICATION HANDLERS ---
     const handleAuth = async (e) => {
@@ -118,6 +119,35 @@ export default function Services() {
         const matchSearch = s.name.toLowerCase().includes(search.toLowerCase());
         return matchTag && matchSearch;
     });
+
+    const downloadBlob = (blob, filename) => {
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        window.URL.revokeObjectURL(url);
+    };
+
+    const handleDownloadDocument = async () => {
+        if (!selectedService?.service_id) return;
+
+        try {
+            const response = await fetch(`http://127.0.0.1:8000/service-document-templates/${selectedService.service_id}/download?format=${encodeURIComponent(selectedFormat)}`);
+            if (!response.ok) {
+                alert("Неуспешно преземање на документот.");
+                return;
+            }
+
+            const blob = await response.blob();
+            const ext = selectedFormat === 'pdf' ? 'pdf' : selectedFormat === 'docx' ? 'docx' : 'txt';
+            downloadBlob(blob, `${selectedService.service_id}-application-form.${ext}`);
+        } catch {
+            alert("Грешка при преземање на документот.");
+        }
+    };
 
     useEffect(() => {
         if (!selectedService && filtered.length > 0) {
@@ -463,16 +493,16 @@ export default function Services() {
 
                                 {/* TWO BUTTONS AT THE BOTTOM */}
                                 <div style={{marginTop: "auto", display: "flex", flexDirection: "column", gap: 12}}>
-                                    {/* Primary Button - Redirects to login if not logged in */}
+                                    <div style={{display: 'flex', gap: 8, marginBottom: 8}}>
+                                        <select value={selectedFormat} onChange={(e) => setSelectedFormat(e.target.value)} style={{padding: '8px', borderRadius: 8, border: '1px solid #e2e8f0'}}>
+                                            <option value="txt">TXT</option>
+                                            <option value="pdf">PDF</option>
+                                            <option value="docx">Word (.docx)</option>
+                                        </select>
+                                    </div>
+
                                     <button
-                                        onClick={() => {
-                                            if (!isLoggedIn) {
-                                                navigate('/login'); // Redirects to your login page
-                                            } else {
-                                                alert("Пренасочување кон апликација...");
-                                                // Or: navigate(`/apply/${selectedService.name}`)
-                                            }
-                                        }}
+                                        onClick={handleDownloadDocument}
                                         style={{
                                             background: selectedService.color,
                                             color: "#fff",
@@ -487,8 +517,11 @@ export default function Services() {
                                         onMouseOver={(e) => e.target.style.opacity = "0.85"}
                                         onMouseOut={(e) => e.target.style.opacity = "1"}
                                     >
-                                        {isLoggedIn ? "Поднеси барање" : "Најавете се за аплицирање"}
+                                        Преземи документ
                                     </button>
+                                    <p style={{margin: 0, fontSize: "0.86rem", color: "#64748b", lineHeight: 1.55}}>
+                                        Документот можете да го пополните и автоматски во АИ Чет. Таму изберете „Прикачи документ за пополнување“.
+                                    </p>
                                     {/* Secondary Button - Location */}
                                     <button
                                         onClick={async () => {

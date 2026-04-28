@@ -8,6 +8,9 @@ class UserRegister(BaseModel):
     email: EmailStr
     full_name: str = Field(..., min_length=1, max_length=255)
     embg: str | None = Field(default=None, min_length=13, max_length=13)
+    address: str | None = Field(default=None, max_length=255)
+    phone_number: str | None = Field(default=None, max_length=50)
+    gender: str | None = Field(default=None, max_length=20)
     password: str = Field(..., min_length=8)
     
     class Config:
@@ -89,6 +92,9 @@ class UserResponse(BaseModel):
     email: str
     full_name: str | None
     embg: str | None
+    address: str | None
+    phone_number: str | None
+    gender: str | None
     role: UserRole
     
     class Config:
@@ -113,6 +119,9 @@ class UserSelfUpdateRequest(BaseModel):
     current_password: str | None = Field(default=None, min_length=8)
     new_password: str | None = Field(default=None, min_length=8)
     embg: str | None = Field(default=None, min_length=13, max_length=13)
+    address: str | None = Field(default=None, max_length=255)
+    phone_number: str | None = Field(default=None, max_length=50)
+    gender: str | None = Field(default=None, max_length=20)
 
     class Config:
         json_schema_extra = {
@@ -121,5 +130,8 @@ class UserSelfUpdateRequest(BaseModel):
                 "current_password": "currentpassword123",
                 "new_password": "newsecurepassword123",
                 "embg": "1234567890123"
+                ,"address": "Partizanska 10, Skopje",
+                "phone_number": "+38970111222",
+                "gender": "Female"
             }
         }

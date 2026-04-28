@@ -14,6 +14,8 @@ if str(ROOT_DIR) not in sys.path:
 from app.db.session import SessionLocal
 from app.models.enums import ServiceCategory
 from app.models.service import Service
+from app.models.service_document_template import ServiceDocumentTemplate
+from app.services.service_document_template_service import build_default_template_body
 
 
 # Small metadata map from the frontend dataset, keyed by service_id from ServiceOffice.
@@ -81,8 +83,13 @@ def seed() -> None:
     db = SessionLocal()
     try:
         existing_by_service_id = {row.service_id: row for row in db.query(Service).all()}
+        existing_templates_by_service_id = {
+            row.service_id: row for row in db.query(ServiceDocumentTemplate).all()
+        }
         created = 0
         updated = 0
+        template_created = 0
+        template_updated = 0
 
         for service_id, meta in SERVICE_META.items():
             if service_id in existing_by_service_id:
@@ -98,8 +105,33 @@ def seed() -> None:
                 db.add(service)
                 created += 1
 
+            template_title = f"{meta['name']} - формулар за апликација"
+            template_body = build_default_template_body(meta["name"])
+            template = existing_templates_by_service_id.get(service_id)
+            if template is None:
+                db.add(
+                    ServiceDocumentTemplate(
+                        service_id=service_id,
+                        title=template_title,
+                        template_type="json",
+                        template_body=template_body,
+                        is_active=True,
+                    )
+                )
+                template_created += 1
+            else:
+                template.title = template_title
+                template.template_type = "json"
+                template.template_body = template_body
+                template.is_active = True
+                template_updated += 1
+
         db.commit()
-        print(f"Services seed complete. Created: {created}, Updated: {updated}")
+        print(
+            "Services seed complete. "
+            f"Created: {created}, Updated: {updated}, "
+            f"Templates created: {template_created}, Templates updated: {template_updated}"
+        )
     finally:
         db.close()
 

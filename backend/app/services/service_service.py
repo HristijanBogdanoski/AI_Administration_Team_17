@@ -2,6 +2,7 @@ from sqlalchemy.orm import Session
 
 from app.models.service import Service
 from app.schemas.service import ServiceCreate, ServiceUpdate
+from app.services.service_document_template_service import create_blank_template_for_service
 
 
 def get_all_services(db: Session) -> list[Service]:
@@ -17,6 +18,7 @@ def create_service(db: Session, payload: ServiceCreate) -> Service:
     db.add(service)
     db.commit()
     db.refresh(service)
+    create_blank_template_for_service(db, service)
     return service
 
 

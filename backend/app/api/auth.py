@@ -220,6 +220,18 @@ async def update_me(
             current_user.embg = payload.embg
             changed = True
 
+    if payload.address is not None:
+        current_user.address = payload.address
+        changed = True
+
+    if payload.phone_number is not None:
+        current_user.phone_number = payload.phone_number
+        changed = True
+
+    if payload.gender is not None:
+        current_user.gender = payload.gender
+        changed = True
+
     if changed:
         db.commit()
         db.refresh(current_user)

@@ -6,7 +6,7 @@
         const [activeTab, setActiveTab] = useState('login');
         const [showPassword, setShowPassword] = useState(false);
         const [loginForm, setLoginForm] = useState({ email: '', password: '' });
-        const [registerForm, setRegisterForm] = useState({ name: '', email: '', password: '', confirm: '', embg: '' });
+        const [registerForm, setRegisterForm] = useState({ name: '', email: '', password: '', confirm: '', embg: '', address: '', phone_number: '', gender: '' });
         const [loginSuccess, setLoginSuccess] = useState(false);
         const [registerSuccess, setRegisterSuccess] = useState(false);
         const [error, setError] = useState('');
@@ -64,6 +64,9 @@
                         email: registerForm.email,
                         full_name: registerForm.name,
                         embg: registerForm.embg || null,
+                        address: registerForm.address || null,
+                        phone_number: registerForm.phone_number || null,
+                        gender: registerForm.gender || null,
                         password: registerForm.password,
                     }),
                 });
@@ -368,6 +371,58 @@
                                                     fontSize: '0.875rem', outline: 'none', boxSizing: 'border-box'
                                                 }}
                                             />
+                                        </div>
+
+                                        <div style={{ marginBottom: 16 }}>
+                                            <label style={{ display: 'block', fontSize: '0.875rem', color: '#374151', marginBottom: 6 }}>
+                                                Адреса (опционално)
+                                            </label>
+                                            <input
+                                                type="text"
+                                                value={registerForm.address}
+                                                onChange={(e) => setRegisterForm({ ...registerForm, address: e.target.value })}
+                                                placeholder="Улица, број, град"
+                                                style={{
+                                                    width: '100%', padding: '12px 14px', borderRadius: 10,
+                                                    border: '1px solid #e2e8f0', background: '#F8FAFC',
+                                                    fontSize: '0.875rem', outline: 'none', boxSizing: 'border-box'
+                                                }}
+                                            />
+                                        </div>
+
+                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
+                                            <div>
+                                                <label style={{ display: 'block', fontSize: '0.875rem', color: '#374151', marginBottom: 6 }}>
+                                                    Телефон (опционално)
+                                                </label>
+                                                <input
+                                                    type="text"
+                                                    value={registerForm.phone_number}
+                                                    onChange={(e) => setRegisterForm({ ...registerForm, phone_number: e.target.value })}
+                                                    placeholder="+389 ..."
+                                                    style={{
+                                                        width: '100%', padding: '12px 14px', borderRadius: 10,
+                                                        border: '1px solid #e2e8f0', background: '#F8FAFC',
+                                                        fontSize: '0.875rem', outline: 'none', boxSizing: 'border-box'
+                                                    }}
+                                                />
+                                            </div>
+                                            <div>
+                                                <label style={{ display: 'block', fontSize: '0.875rem', color: '#374151', marginBottom: 6 }}>
+                                                    Пол (опционално)
+                                                </label>
+                                                <input
+                                                    type="text"
+                                                    value={registerForm.gender}
+                                                    onChange={(e) => setRegisterForm({ ...registerForm, gender: e.target.value })}
+                                                    placeholder="Машки / Женски / ..."
+                                                    style={{
+                                                        width: '100%', padding: '12px 14px', borderRadius: 10,
+                                                        border: '1px solid #e2e8f0', background: '#F8FAFC',
+                                                        fontSize: '0.875rem', outline: 'none', boxSizing: 'border-box'
+                                                    }}
+                                                />
+                                            </div>
                                         </div>
 
                                         {/* Email */}

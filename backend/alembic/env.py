@@ -7,6 +7,7 @@ from app.core.config import settings
 from app.db.session import Base
 from app.models.user import User  # noqa: F401
 from app.models.service import Service  # noqa: F401
+from app.models.service_document_template import ServiceDocumentTemplate  # noqa: F401
 
 config = context.config
 config.set_main_option("sqlalchemy.url", settings.database_url)
