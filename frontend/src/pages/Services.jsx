@@ -47,6 +47,130 @@ export default function Services() {
     const [loadingServices, setLoadingServices] = useState(true);
     const [selectedFormat, setSelectedFormat] = useState('txt');
 
+    // --- Minimal CRUD STATE ---
+    const [showCrudModal, setShowCrudModal] = useState(false);
+    const [modalMode, setModalMode] = useState('create'); // create, edit, delete
+    const [selectedServiceForCrud, setSelectedServiceForCrud] = useState(null);
+    const [crudError, setCrudError] = useState('');
+    const [formData, setFormData] = useState({service_id: '', name: '', category: 'documents', description: '', processing_time_days: 0, location: ''});
+
+    // --- CRUD HANDLERS ---
+    const handleCrud = async (mode, service = null) => {
+        setModalMode(mode);
+        setSelectedServiceForCrud(service);
+        setCrudError('');
+        if (mode === 'create') {
+            setFormData({service_id: '', name: '', category: 'documents', description: '', processing_time_days: 0, location: '', details: []});
+        } else if (mode === 'edit' && service) {
+            // Preserve all existing data when editing
+            const processingDays = service.time === 'Веднаш' ? 0 : (typeof service.time === 'number' ? service.time : parseInt(service.time) || 0);
+            setFormData({
+                service_id: service.service_id,
+                name: service.name,
+                category: Object.keys(CATEGORY_TO_TAG).find(k => CATEGORY_TO_TAG[k] === service.tag) || 'documents',
+                description: service.desc,
+                processing_time_days: processingDays,
+                location: service.location || '',
+                details: service.details || []
+            });
+            console.log('Edit form data initialized:', {
+                service_id: service.service_id,
+                name: service.name,
+                category: Object.keys(CATEGORY_TO_TAG).find(k => CATEGORY_TO_TAG[k] === service.tag) || 'documents',
+                description: service.desc,
+                processing_time_days: processingDays,
+                location: service.location || '',
+                details: service.details || []
+            });
+        }
+        setShowCrudModal(true);
+    };
+
+    const submitCrud = async () => {
+        const token = localStorage.getItem("token");
+        let url = "http://127.0.0.1:8000/services";
+        let method = "POST";
+        
+        if (modalMode === 'edit') {
+            url += `/${selectedServiceForCrud.id}`;
+            method = "PUT";
+        } else if (modalMode === 'delete') {
+            url += `/${selectedServiceForCrud.id}`;
+            method = "DELETE";
+        }
+
+        // Client-side validation for duplicate service_id in create mode
+        if (modalMode === 'create') {
+            const existingService = services.find(s => s.service_id === formData.service_id);
+            if (existingService) {
+                setCrudError(`Услуга со ID "${formData.service_id}" веќе постои ("${existingService.name}"). Изберете друг ID.`);
+                return;
+            }
+        }
+
+        // Prepare the data to send
+        const dataToSend = modalMode !== 'delete' ? {...formData} : undefined;
+        console.log('Sending data to backend:', dataToSend);
+
+        try {
+            const response = await fetch(url, {
+                method,
+                headers: {"Content-Type": "application/json", "Authorization": `Bearer ${token}`},
+                body: modalMode !== 'delete' ? JSON.stringify(dataToSend) : undefined
+            });
+            
+            if (response.ok) {
+                if (modalMode === 'delete') {
+                    setServices(prev => prev.filter(s => s.id !== selectedServiceForCrud.id));
+                } else {
+                    const result = await response.json();
+                    console.log('Backend response:', result);
+                    console.log('Updating service ID:', selectedServiceForCrud?.id);
+                    
+                    if (modalMode === 'create') {
+                        setServices(prev => [{...result, tag: CATEGORY_TO_TAG[result.category] || "Услуги", color: CATEGORY_TO_COLOR[result.category] || "#1B3A6B", time: toDisplayTime(result.processing_time_days)}, ...prev]);
+                    } else {
+                        // For edit, merge backend response with existing service data
+                        setServices(prev => {
+                            console.log('Current services:', prev);
+                            const updated = prev.map(s => {
+                                if (s.id === selectedServiceForCrud.id) {
+                                    console.log('Updating service:', s.name, 'to:', result.name);
+                                    console.log('Backend result:', result);
+                                    console.log('Original service:', s);
+                                    
+                                    // Merge the backend response with the existing service data
+                                    const mergedService = {
+                                        ...s, // Keep all original data
+                                        ...result, // Override with backend response
+                                        // Fix field mapping: backend 'description' -> frontend 'desc'
+                                        desc: result.description || s.desc,
+                                        // Ensure these computed fields are always correct
+                                        tag: CATEGORY_TO_TAG[result.category] || CATEGORY_TO_TAG[s.category] || "Услуги",
+                                        color: CATEGORY_TO_COLOR[result.category] || CATEGORY_TO_COLOR[s.category] || "#1B3A6B",
+                                        time: toDisplayTime(result.processing_time_days !== undefined ? result.processing_time_days : s.processing_time_days)
+                                    };
+                                    
+                                    console.log('Merged service:', mergedService);
+                                    return mergedService;
+                                }
+                                return s;
+                            });
+                            console.log('Updated services:', updated);
+                            return updated;
+                        });
+                    }
+                }
+                setShowCrudModal(false);
+            } else {
+                const error = await response.json();
+                setCrudError(error.detail || 'Грешка при зачувување. Обидете се повторно.');
+            }
+        } catch (err) {
+            console.error('Operation error:', err);
+        }
+    };
+
     // --- AUTHENTICATION HANDLERS ---
     const handleAuth = async (e) => {
         e.preventDefault();
@@ -69,11 +193,10 @@ export default function Services() {
                     setShowModal(false);
                     window.location.reload(); // Sync navbar on home/other pages
                 } else {
-                    alert("Успешна регистрација!");
                     setAuthMode("login");
                 }
             } else {
-                alert(data.detail || "Грешка при автентикација");
+                console.error(data.detail || "Грешка при автентикација");
             }
         } catch (err) {
             console.error("Connection failed:", err);
@@ -101,8 +224,14 @@ export default function Services() {
                     details: Array.isArray(service.details) ? service.details : [],
                     location: service.location,
                 }));
+                
+                // Sort by ID (newest first) to maintain order
+                const sortedMapped = mapped.sort((a, b) => {
+                    if (a.id && b.id) return b.id - a.id;
+                    return 0;
+                });
 
-                setServices(mapped);
+                setServices(sortedMapped);
             } catch (err) {
                 console.error("Services fetch failed:", err);
                 setServices([]);
@@ -137,7 +266,7 @@ export default function Services() {
         try {
             const response = await fetch(`http://127.0.0.1:8000/service-document-templates/${selectedService.service_id}/download?format=${encodeURIComponent(selectedFormat)}`);
             if (!response.ok) {
-                alert("Неуспешно преземање на документот.");
+                console.error("Неуспешно преземање на документот.");
                 return;
             }
 
@@ -145,7 +274,7 @@ export default function Services() {
             const ext = selectedFormat === 'pdf' ? 'pdf' : selectedFormat === 'docx' ? 'docx' : 'txt';
             downloadBlob(blob, `${selectedService.service_id}-application-form.${ext}`);
         } catch {
-            alert("Грешка при преземање на документот.");
+            console.error("Грешка при преземање на документот.");
         }
     };
 
@@ -371,6 +500,27 @@ export default function Services() {
                             </button>
                         ))}
                     </div>
+
+                    {isLoggedIn && (
+                        <div style={{display: "flex", justifyContent: "center", marginTop: "20px"}}>
+                            <button 
+                                onClick={() => handleCrud('create')} 
+                                style={{
+                                    backgroundColor: "#1B3A6B",
+                                    color: "#fff",
+                                    border: "none",
+                                    padding: "12px 24px",
+                                    borderRadius: "25px",
+                                    cursor: "pointer",
+                                    fontWeight: "600",
+                                    fontSize: "0.9rem",
+                                    transition: "all 0.2s ease"
+                                }}
+                            >
+                                + Додади Услуга
+                            </button>
+                        </div>
+                    )}
                 </div>
             </div>
 
@@ -412,14 +562,22 @@ export default function Services() {
                                     marginBottom: "12px"
                                 }}>
                                     <h4 style={{margin: 0, fontSize: "1.1rem", color: "#1e293b"}}>{s.name}</h4>
-                                    <span style={{
-                                        fontSize: "0.7rem",
-                                        padding: "4px 8px",
-                                        borderRadius: "4px",
-                                        backgroundColor: `${s.color}15`,
-                                        color: s.color,
-                                        fontWeight: "700"
-                                    }}>{s.tag}</span>
+                                    <div style={{display: "flex", gap: "5px", alignItems: "center"}}>
+                                        <span style={{
+                                            fontSize: "0.7rem",
+                                            padding: "4px 8px",
+                                            borderRadius: "4px",
+                                            backgroundColor: `${s.color}15`,
+                                            color: s.color,
+                                            fontWeight: "700"
+                                        }}>{s.tag}</span>
+                                        {isLoggedIn && (
+                                            <div style={{display: "flex", gap: "3px"}}>
+                                                <button onClick={(e) => {e.stopPropagation(); handleCrud('edit', s);}} style={{backgroundColor: "#3b82f6", color: "#fff", border: "none", padding: "3px 6px", borderRadius: "3px", cursor: "pointer", fontSize: "0.7rem"}}>Измени</button>
+                                                <button onClick={(e) => {e.stopPropagation(); handleCrud('delete', s);}} style={{backgroundColor: "#ef4444", color: "#fff", border: "none", padding: "3px 6px", borderRadius: "3px", cursor: "pointer", fontSize: "0.7rem"}}>Избриши</button>
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
                                 <p style={{fontSize: "0.9rem", color: "#64748b", marginBottom: "15px"}}>{s.desc}</p>
                                 <div style={{
@@ -564,6 +722,122 @@ export default function Services() {
                     </div>
                 </div>
             </div>
+
+            {/* --- COMPACT CRUD MODAL --- */}
+            {showCrudModal && (
+                <div style={{position: "fixed", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "rgba(0,0,0,0.6)", display: "flex", justifyContent: "center", alignItems: "center", zIndex: 1000}} onClick={() => setShowCrudModal(false)}>
+                    <div style={{backgroundColor: "#fff", padding: "30px", borderRadius: "12px", width: "100%", maxWidth: modalMode === 'delete' ? "400px" : "500px", position: "relative"}} onClick={(e) => e.stopPropagation()}>
+                        <button style={{position: "absolute", top: "10px", right: "10px", border: "none", background: "none", fontSize: "20px", cursor: "pointer"}} onClick={() => setShowCrudModal(false)}>&times;</button>
+                        
+                        <h3 style={{marginBottom: "20px", color: modalMode === 'delete' ? "#dc2626" : "#1e293b"}}>
+                            {modalMode === 'create' ? 'Нова Услуга' : modalMode === 'edit' ? 'Ажурирај Услуга' : 'Избриши Услуга'}
+                        </h3>
+                        
+                        {modalMode === 'delete' ? (
+                            <div>
+                                <p style={{marginBottom: "20px", color: "#6b7280"}}>
+                                    Дали сте сигурни дека сакате да ја избришете услугата "<strong>{selectedServiceForCrud?.name}</strong>" (ID: <strong>{selectedServiceForCrud?.service_id}</strong>)?
+                                </p>
+                                <div style={{display: "flex", gap: "10px"}}>
+                                    <button onClick={submitCrud} style={{flex: 1, padding: "10px", backgroundColor: "#dc2626", color: "#fff", border: "none", borderRadius: "6px", cursor: "pointer"}}>Избриши</button>
+                                    <button onClick={() => setShowCrudModal(false)} style={{flex: 1, padding: "10px", backgroundColor: "#6b7280", color: "#fff", border: "none", borderRadius: "6px", cursor: "pointer"}}>Откажи</button>
+                                </div>
+                            </div>
+                        ) : (
+                            <form onSubmit={(e) => {e.preventDefault(); submitCrud();}} style={{display: "flex", flexDirection: "column", gap: "15px"}}>
+                                {modalMode === 'edit' && (
+                                    <div style={{marginBottom: "10px"}}>
+                                        <small style={{color: "#6b7280", fontSize: "0.8rem", display: "block", marginBottom: "5px"}}>
+                                            ID на Услуга (не може да се промени):
+                                        </small>
+                                        <input 
+                                            type="text" 
+                                            value={formData.service_id} 
+                                            disabled
+                                            style={{
+                                                padding: "10px", 
+                                                border: "1px solid #d1d5db", 
+                                                borderRadius: "6px",
+                                                backgroundColor: "#f3f4f6",
+                                                color: "#6b7280",
+                                                fontWeight: "bold"
+                                            }} 
+                                            readOnly
+                                        />
+                                    </div>
+                                )}
+                                {modalMode === 'create' && (
+                                    <input 
+                                        type="text" 
+                                        placeholder="ID на Услуга *" 
+                                        value={formData.service_id} 
+                                        onChange={(e) => setFormData({...formData, service_id: e.target.value})}
+                                        style={{
+                                            padding: "10px", 
+                                            border: "1px solid #d1d5db", 
+                                            borderRadius: "6px"
+                                        }} 
+                                        required 
+                                    />
+                                )}
+                                <input 
+                                    type="text" 
+                                    placeholder="Име на Услуга *" 
+                                    value={formData.name} 
+                                    onChange={(e) => setFormData({...formData, name: e.target.value})} 
+                                    style={{padding: "10px", border: "1px solid #d1d5db", borderRadius: "6px"}} 
+                                    required 
+                                />
+                                {modalMode === 'create' && formData.service_id && (
+                                    <div style={{fontSize: "0.75rem", color: "#6b7280", marginTop: "-10px", paddingLeft: "4px"}}>
+                                        ID: <strong>{formData.service_id}</strong>
+                                    </div>
+                                )}
+                                <select value={formData.category} onChange={(e) => setFormData({...formData, category: e.target.value})} style={{padding: "10px", border: "1px solid #d1d5db", borderRadius: "6px"}}>
+                                    <option value="documents">Документи</option>
+                                    <option value="taxes">Даноци</option>
+                                    <option value="social">Социјални</option>
+                                    <option value="business">Деловни</option>
+                                    <option value="education">Услуги</option>
+                                    <option value="utilities">Институции</option>
+                                </select>
+                                <textarea 
+                                    placeholder="Опис" 
+                                    value={formData.description || ''} 
+                                    onChange={(e) => {
+                                        console.log('Description changed from:', formData.description, 'to:', e.target.value);
+                                        setFormData({...formData, description: e.target.value});
+                                    }} 
+                                    style={{padding: "10px", border: "1px solid #d1d5db", borderRadius: "6px", minHeight: "60px"}}
+                                />
+                                <textarea 
+                                    placeholder="Детали (еден по ред)" 
+                                    value={formData.details ? formData.details.join('\n') : ''} 
+                                    onChange={(e) => setFormData({...formData, details: e.target.value.split('\n')})} 
+                                    onBlur={(e) => setFormData({...formData, details: e.target.value.split('\n').filter(d => d.trim())})}
+                                    style={{padding: "10px", border: "1px solid #d1d5db", borderRadius: "6px", minHeight: "80px"}}
+                                />
+                                <input 
+    type="text" 
+    placeholder={formData.processing_time_days === 0 ? "Работни Дена" : "Изберете работни денови (пр. 3 работни дена)"} 
+    value={formData.processing_time_days === 0 ? "" : formData.processing_time_days} 
+    onChange={(e) => setFormData({...formData, processing_time_days: e.target.value})} 
+    style={{padding: "10px", border: "1px solid #d1d5db", borderRadius: "6px"}} 
+/>
+                                {crudError && (
+                                    <div style={{padding: "8px 12px", backgroundColor: "#fef2f2", border: "1px solid #fecaca", borderRadius: "6px", color: "#dc2626", fontSize: "0.85rem"}}>
+                                        {crudError}
+                                    </div>
+                                )}
+                                <div style={{display: "flex", gap: "10px"}}>
+                                    <button type="submit" style={{flex: 1, padding: "10px", backgroundColor: "#1B3A6B", color: "#fff", border: "none", borderRadius: "6px", cursor: "pointer"}}>{modalMode === 'edit' ? 'Ажурирај' : 'Креирај'}</button>
+                                    <button type="button" onClick={() => setShowCrudModal(false)} style={{flex: 1, padding: "10px", backgroundColor: "#6b7280", color: "#fff", border: "none", borderRadius: "6px", cursor: "pointer"}}>Откажи</button>
+                                </div>
+                            </form>
+                        )}
+                    </div>
+                </div>
+            )}
 
             {/* --- EXACT FOOTER FROM FAQ PAGE --- */}
             <footer style={{background: '#0f2044', padding: '48px 60px 24px', fontFamily: "'Sora', sans-serif"}}>
