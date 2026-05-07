@@ -3,13 +3,6 @@ from app.services.gemini_service import FALLBACK_TEXT, ask_gemini
 from app.services.tavily_service import search_context
 
 
-def _extract_field(raw: str, label: str) -> str | None:
-    for line in raw.splitlines():
-        if line.strip().startswith(label):
-            return line.split(":", 1)[1].strip()
-    return None
-
-
 def build_chat_response(question: str) -> ChatResponse:
     web_context = search_context(question)
     raw = ask_gemini(question, web_context=web_context)
@@ -17,17 +10,10 @@ def build_chat_response(question: str) -> ChatResponse:
     if raw.strip() == "FALLBACK" or "FALLBACK" in raw:
         return ChatResponse(raw_response=FALLBACK_TEXT, fallback=True)
 
-    service_name = _extract_field(raw, "Service Name")
-    required_documents = _extract_field(raw, "Required Documents")
-    location_data = _extract_field(raw, "Location Data")
-
-    if not service_name and not required_documents and not location_data:
+    if not raw.strip():
         return ChatResponse(raw_response=FALLBACK_TEXT, fallback=True)
 
     return ChatResponse(
-        service_name=service_name,
-        required_documents=required_documents,
-        location_data=location_data,
         fallback=False,
         raw_response=raw,
     )
