@@ -2,31 +2,15 @@ import React, {useEffect, useState} from "react";
 import {useNavigate} from "react-router-dom";
 import '../index.css';
 
-const CATEGORY_TO_TAG = {
-    documents: "Документи",
-    taxes: "Даноци",
-    social: "Социјални",
-    business: "Деловни",
-    education: "Услуги",
-    utilities: "Институции"
-};
+const CATEGORY_TO_TAG = {documents: "Документи", taxes: "Даноци", social: "Социјални", business: "Деловни", education: "Услуги", utilities: "Институции"};
+const CATEGORY_TO_COLOR = {documents: "#1B3A6B", taxes: "#CE2028", social: "rgb(212,160,23)", business: "rgb(22,101,52)", education: "#8B5CF6", utilities: "rgb(3,105,161)"};
+const TAGS = ["Сите", "Документи", "Даноци", "Социјални", "Деловни", "Услуги", "Институции"];
 
-const CATEGORY_TO_COLOR = {
-    documents: "#1B3A6B",
-    taxes: "#CE2028",
-    social: "rgb(212,160,23)",
-    business: "rgb(22,101,52)",
-    education: "#8B5CF6",
-    utilities: "rgb(3,105,161)"
-};
-
-const tags = ["Сите", "Документи", "Даноци", "Социјални", "Деловни", "Услуги", "Институции"];
-
-function toDisplayTime(days) {
+const toDisplayTime = (days) => {
     if (days === null || days === undefined) return "Зависи";
     if (days === 0) return "Веднаш";
     return `${days} работни дена`;
-}
+};
 
 export default function Services() {
     const navigate = useNavigate();
@@ -35,26 +19,88 @@ export default function Services() {
     const [isLoggedIn, setIsLoggedIn] = useState(!!localStorage.getItem("token"));
     const [showModal, setShowModal] = useState(false);
     const [authMode, setAuthMode] = useState("login");
-    const [email, setEmail] = useState("");
-    const [password, setPassword] = useState("");
-    const [fullName, setFullName] = useState("");
-
-    // --- UI & FILTER STATE ---
+    const [authForm, setAuthForm] = useState({email: "", password: "", fullName: ""});
     const [selectedTag, setSelectedTag] = useState("Сите");
     const [search, setSearch] = useState("");
     const [selectedService, setSelectedService] = useState(null);
     const [services, setServices] = useState([]);
     const [loadingServices, setLoadingServices] = useState(true);
     const [selectedFormat, setSelectedFormat] = useState('txt');
-
-    // --- Minimal CRUD STATE ---
     const [showCrudModal, setShowCrudModal] = useState(false);
-    const [modalMode, setModalMode] = useState('create'); // create, edit, delete
+    const [modalMode, setModalMode] = useState('create');
     const [selectedServiceForCrud, setSelectedServiceForCrud] = useState(null);
     const [crudError, setCrudError] = useState('');
     const [formData, setFormData] = useState({service_id: '', name: '', category: 'documents', description: '', processing_time_days: 0, location: ''});
+    const [showTemplateModal, setShowTemplateModal] = useState(false);
+    const [templateMode, setTemplateMode] = useState('create');
+    const [templateData, setTemplateData] = useState({service_id: '', title: '', template_body: '', is_active: true});
+    const [currentTemplate, setCurrentTemplate] = useState(null);
 
-    // --- CRUD HANDLERS ---
+    // --- TEMPLATE HANDLERS ---
+    const handleTemplateCrud = (mode) => {
+        setTemplateMode(mode);
+        if (mode === 'create') {
+            setTemplateData({service_id: selectedService?.service_id || '', title: '', template_body: '', is_active: true});
+        } else if (mode === 'edit' && currentTemplate) {
+            setTemplateData({
+                service_id: currentTemplate.service_id,
+                title: currentTemplate.title,
+                template_body: JSON.stringify(currentTemplate.template_body, null, 2),
+                is_active: currentTemplate.is_active
+            });
+        }
+        setShowTemplateModal(true);
+    };
+
+    const submitTemplate = async () => {
+        const token = localStorage.getItem("token");
+        let url = "http://127.0.0.1:8000/service-document-templates";
+        let method = "POST";
+        
+        if (templateMode === 'edit') {
+            url += `/${templateData.service_id}`;
+            method = "PUT";
+        } else if (templateMode === 'delete') {
+            url += `/${currentTemplate.service_id}`;
+            method = "DELETE";
+        }
+        
+        try {
+            const response = await fetch(url, {
+                method,
+                headers: {"Content-Type": "application/json", "Authorization": `Bearer ${token}`},
+                body: templateMode !== 'delete' ? JSON.stringify({...templateData, template_body: JSON.parse(templateData.template_body)}) : undefined
+            });
+            if (response.ok) {
+                setShowTemplateModal(false);
+                if (templateMode === 'delete') {
+                    setCurrentTemplate(null);
+                } else {
+                    fetchTemplateForService(selectedService.service_id);
+                }
+            }
+        } catch (err) {
+            console.error('Template error:', err);
+        }
+    };
+
+    const fetchTemplateForService = async (serviceId) => {
+        const token = localStorage.getItem("token");
+        try {
+            const response = await fetch(`http://127.0.0.1:8000/service-document-templates/${serviceId}`, {
+                headers: {"Authorization": `Bearer ${token}`}
+            });
+            if (response.ok) {
+                const template = await response.json();
+                setCurrentTemplate(template);
+            } else {
+                setCurrentTemplate(null);
+            }
+        } catch (err) {
+            setCurrentTemplate(null);
+        }
+    };
+
     const handleCrud = async (mode, service = null) => {
         setModalMode(mode);
         setSelectedServiceForCrud(service);
@@ -62,18 +108,8 @@ export default function Services() {
         if (mode === 'create') {
             setFormData({service_id: '', name: '', category: 'documents', description: '', processing_time_days: 0, location: '', details: []});
         } else if (mode === 'edit' && service) {
-            // Preserve all existing data when editing
             const processingDays = service.time === 'Веднаш' ? 0 : (typeof service.time === 'number' ? service.time : parseInt(service.time) || 0);
             setFormData({
-                service_id: service.service_id,
-                name: service.name,
-                category: Object.keys(CATEGORY_TO_TAG).find(k => CATEGORY_TO_TAG[k] === service.tag) || 'documents',
-                description: service.desc,
-                processing_time_days: processingDays,
-                location: service.location || '',
-                details: service.details || []
-            });
-            console.log('Edit form data initialized:', {
                 service_id: service.service_id,
                 name: service.name,
                 category: Object.keys(CATEGORY_TO_TAG).find(k => CATEGORY_TO_TAG[k] === service.tag) || 'documents',
@@ -99,7 +135,6 @@ export default function Services() {
             method = "DELETE";
         }
 
-        // Client-side validation for duplicate service_id in create mode
         if (modalMode === 'create') {
             const existingService = services.find(s => s.service_id === formData.service_id);
             if (existingService) {
@@ -108,9 +143,7 @@ export default function Services() {
             }
         }
 
-        // Prepare the data to send
         const dataToSend = modalMode !== 'delete' ? {...formData} : undefined;
-        console.log('Sending data to backend:', dataToSend);
 
         try {
             const response = await fetch(url, {
@@ -124,41 +157,22 @@ export default function Services() {
                     setServices(prev => prev.filter(s => s.id !== selectedServiceForCrud.id));
                 } else {
                     const result = await response.json();
-                    console.log('Backend response:', result);
-                    console.log('Updating service ID:', selectedServiceForCrud?.id);
-                    
                     if (modalMode === 'create') {
                         setServices(prev => [{...result, tag: CATEGORY_TO_TAG[result.category] || "Услуги", color: CATEGORY_TO_COLOR[result.category] || "#1B3A6B", time: toDisplayTime(result.processing_time_days)}, ...prev]);
                     } else {
-                        // For edit, merge backend response with existing service data
-                        setServices(prev => {
-                            console.log('Current services:', prev);
-                            const updated = prev.map(s => {
-                                if (s.id === selectedServiceForCrud.id) {
-                                    console.log('Updating service:', s.name, 'to:', result.name);
-                                    console.log('Backend result:', result);
-                                    console.log('Original service:', s);
-                                    
-                                    // Merge the backend response with the existing service data
-                                    const mergedService = {
-                                        ...s, // Keep all original data
-                                        ...result, // Override with backend response
-                                        // Fix field mapping: backend 'description' -> frontend 'desc'
-                                        desc: result.description || s.desc,
-                                        // Ensure these computed fields are always correct
-                                        tag: CATEGORY_TO_TAG[result.category] || CATEGORY_TO_TAG[s.category] || "Услуги",
-                                        color: CATEGORY_TO_COLOR[result.category] || CATEGORY_TO_COLOR[s.category] || "#1B3A6B",
-                                        time: toDisplayTime(result.processing_time_days !== undefined ? result.processing_time_days : s.processing_time_days)
-                                    };
-                                    
-                                    console.log('Merged service:', mergedService);
-                                    return mergedService;
-                                }
-                                return s;
-                            });
-                            console.log('Updated services:', updated);
-                            return updated;
-                        });
+                        setServices(prev => prev.map(s => {
+                            if (s.id === selectedServiceForCrud.id) {
+                                return {
+                                    ...s,
+                                    ...result,
+                                    desc: result.description || s.desc,
+                                    tag: CATEGORY_TO_TAG[result.category] || CATEGORY_TO_TAG[s.category] || "Услуги",
+                                    color: CATEGORY_TO_COLOR[result.category] || CATEGORY_TO_COLOR[s.category] || "#1B3A6B",
+                                    time: toDisplayTime(result.processing_time_days !== undefined ? result.processing_time_days : s.processing_time_days)
+                                };
+                            }
+                            return s;
+                        }));
                     }
                 }
                 setShowCrudModal(false);
@@ -175,9 +189,7 @@ export default function Services() {
     const handleAuth = async (e) => {
         e.preventDefault();
         const endpoint = authMode === "login" ? "/auth/login" : "/auth/register";
-        const payload = authMode === "login"
-            ? {username: email, password: password}
-            : {email, full_name: fullName, password};
+        const payload = authMode === "login" ? {username: authForm.email, password: authForm.password} : {email: authForm.email, full_name: authForm.fullName, password: authForm.password};
 
         try {
             const response = await fetch(`http://127.0.0.1:8000${endpoint}`, {
@@ -191,7 +203,7 @@ export default function Services() {
                     localStorage.setItem("token", data.access_token);
                     setIsLoggedIn(true);
                     setShowModal(false);
-                    window.location.reload(); // Sync navbar on home/other pages
+                    window.location.reload();
                 } else {
                     setAuthMode("login");
                 }
@@ -208,10 +220,7 @@ export default function Services() {
             try {
                 setLoadingServices(true);
                 const res = await fetch("http://127.0.0.1:8000/services");
-                if (!res.ok) {
-                    throw new Error("Неуспешно вчитување на услуги");
-                }
-
+                if (!res.ok) throw new Error("Неуспешно вчитување на услуги");
                 const data = await res.json();
                 const mapped = data.map((service) => ({
                     id: service.id,
@@ -224,13 +233,7 @@ export default function Services() {
                     details: Array.isArray(service.details) ? service.details : [],
                     location: service.location,
                 }));
-                
-                // Sort by ID (newest first) to maintain order
-                const sortedMapped = mapped.sort((a, b) => {
-                    if (a.id && b.id) return b.id - a.id;
-                    return 0;
-                });
-
+                const sortedMapped = mapped.sort((a, b) => (a.id && b.id) ? b.id - a.id : 0);
                 setServices(sortedMapped);
             } catch (err) {
                 console.error("Services fetch failed:", err);
@@ -239,7 +242,6 @@ export default function Services() {
                 setLoadingServices(false);
             }
         };
-
         fetchServices();
     }, []);
 
@@ -262,14 +264,12 @@ export default function Services() {
 
     const handleDownloadDocument = async () => {
         if (!selectedService?.service_id) return;
-
         try {
             const response = await fetch(`http://127.0.0.1:8000/service-document-templates/${selectedService.service_id}/download?format=${encodeURIComponent(selectedFormat)}`);
             if (!response.ok) {
                 console.error("Неуспешно преземање на документот.");
                 return;
             }
-
             const blob = await response.blob();
             const ext = selectedFormat === 'pdf' ? 'pdf' : selectedFormat === 'docx' ? 'docx' : 'txt';
             downloadBlob(blob, `${selectedService.service_id}-application-form.${ext}`);
@@ -279,16 +279,16 @@ export default function Services() {
     };
 
     useEffect(() => {
-        if (!selectedService && filtered.length > 0) {
-            setSelectedService(filtered[0]);
-        }
-        if (selectedService && filtered.length > 0 && !filtered.some((s) => s.id === selectedService.id)) {
-            setSelectedService(filtered[0]);
-        }
-        if (filtered.length === 0) {
-            setSelectedService(null);
-        }
+        if (!selectedService && filtered.length > 0) setSelectedService(filtered[0]);
+        if (selectedService && filtered.length > 0 && !filtered.some((s) => s.id === selectedService.id)) setSelectedService(filtered[0]);
+        if (filtered.length === 0) setSelectedService(null);
     }, [filtered, selectedService]);
+
+    useEffect(() => {
+        if (selectedService && isLoggedIn) {
+            fetchTemplateForService(selectedService.service_id);
+        }
+    }, [selectedService, isLoggedIn]);
 
     return (
         <div style={{backgroundColor: "#f8fafc", minHeight: "100vh"}}>
@@ -296,76 +296,18 @@ export default function Services() {
 
             {/* --- AUTH MODAL --- */}
             {showModal && (
-                <div style={{
-                    position: "fixed", top: 0, left: 0, right: 0, bottom: 0,
-                    backgroundColor: "rgba(0,0,0,0.6)", display: "flex",
-                    justifyContent: "center", alignItems: "center", zIndex: 1000
-                }} onClick={() => setShowModal(false)}>
-                    <div style={{
-                        backgroundColor: "#fff", padding: "40px", borderRadius: "12px",
-                        width: "100%", maxWidth: "400px", position: "relative"
-                    }} onClick={(e) => e.stopPropagation()}>
-                        <button
-                            style={{
-                                position: "absolute",
-                                top: "15px",
-                                right: "15px",
-                                border: "none",
-                                background: "none",
-                                fontSize: "24px",
-                                cursor: "pointer"
-                            }}
-                            onClick={() => setShowModal(false)}
-                        >&times;</button>
+                <div style={{position: "fixed", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "rgba(0,0,0,0.6)", display: "flex", justifyContent: "center", alignItems: "center", zIndex: 1000}} onClick={() => setShowModal(false)}>
+                    <div style={{backgroundColor: "#fff", padding: "40px", borderRadius: "12px", width: "100%", maxWidth: "400px", position: "relative"}} onClick={(e) => e.stopPropagation()}>
+                        <button style={{position: "absolute", top: "15px", right: "15px", border: "none", background: "none", fontSize: "24px", cursor: "pointer"}} onClick={() => setShowModal(false)}>&times;</button>
                         <div style={{display: "flex", marginBottom: "25px", borderBottom: "1px solid #eee"}}>
-                            <button
-                                style={{
-                                    flex: 1,
-                                    padding: "10px",
-                                    border: "none",
-                                    background: "none",
-                                    cursor: "pointer",
-                                    borderBottom: authMode === "login" ? "2px solid #1B3A6B" : "none",
-                                    fontWeight: authMode === "login" ? "bold" : "normal"
-                                }}
-                                onClick={() => setAuthMode("login")}
-                            >Најава
-                            </button>
-                            <button
-                                style={{
-                                    flex: 1,
-                                    padding: "10px",
-                                    border: "none",
-                                    background: "none",
-                                    cursor: "pointer",
-                                    borderBottom: authMode === "register" ? "2px solid #1B3A6B" : "none",
-                                    fontWeight: authMode === "register" ? "bold" : "normal"
-                                }}
-                                onClick={() => setAuthMode("register")}
-                            >Регистрација
-                            </button>
+                            <button style={{flex: 1, padding: "10px", border: "none", background: "none", cursor: "pointer", borderBottom: authMode === "login" ? "2px solid #1B3A6B" : "none", fontWeight: authMode === "login" ? "bold" : "normal"}} onClick={() => setAuthMode("login")}>Најава</button>
+                            <button style={{flex: 1, padding: "10px", border: "none", background: "none", cursor: "pointer", borderBottom: authMode === "register" ? "2px solid #1B3A6B" : "none", fontWeight: authMode === "register" ? "bold" : "normal"}} onClick={() => setAuthMode("register")}>Регистрација</button>
                         </div>
                         <form onSubmit={handleAuth} style={{display: "flex", flexDirection: "column", gap: "15px"}}>
-                            {authMode === "register" && (
-                                <input style={{padding: "12px", borderRadius: "6px", border: "1px solid #ddd"}}
-                                       type="text" placeholder="Целосно име" value={fullName}
-                                       onChange={(e) => setFullName(e.target.value)} required/>
-                            )}
-                            <input style={{padding: "12px", borderRadius: "6px", border: "1px solid #ddd"}} type="email"
-                                   placeholder="Е-пошта" value={email} onChange={(e) => setEmail(e.target.value)}
-                                   required/>
-                            <input style={{padding: "12px", borderRadius: "6px", border: "1px solid #ddd"}}
-                                   type="password" placeholder="Лозинка" value={password}
-                                   onChange={(e) => setPassword(e.target.value)} required/>
-                            <button type="submit" style={{
-                                padding: "14px",
-                                backgroundColor: "#1B3A6B",
-                                color: "#fff",
-                                border: "none",
-                                borderRadius: "6px",
-                                cursor: "pointer",
-                                fontWeight: "bold"
-                            }}>
+                            {authMode === "register" && <input style={{padding: "12px", borderRadius: "6px", border: "1px solid #ddd"}} type="text" placeholder="Целосно име" value={authForm.fullName} onChange={(e) => setAuthForm({...authForm, fullName: e.target.value})} required/>}
+                            <input style={{padding: "12px", borderRadius: "6px", border: "1px solid #ddd"}} type="email" placeholder="Е-пошта" value={authForm.email} onChange={(e) => setAuthForm({...authForm, email: e.target.value})} required/>
+                            <input style={{padding: "12px", borderRadius: "6px", border: "1px solid #ddd"}} type="password" placeholder="Лозинка" value={authForm.password} onChange={(e) => setAuthForm({...authForm, password: e.target.value})} required/>
+                            <button type="submit" style={{padding: "14px", backgroundColor: "#1B3A6B", color: "#fff", border: "none", borderRadius: "6px", cursor: "pointer", fontWeight: "bold"}}>
                                 {authMode === "login" ? "Влези" : "Креирај профил"}
                             </button>
                         </form>
@@ -373,152 +315,39 @@ export default function Services() {
                 </div>
             )}
 
-            {/* --- HERO SECTION --- */}
-            {/* --- HERO SECTION (MATCHED TO FAQ STYLE) --- */}
-            {/* --- HERO SECTION (EXACT FAQ MATCH) --- */}
-            <div style={{
-                background: 'linear-gradient(150deg, #0f2044 0%, #1B3A6B 55%, #1a4a8a 100%)',
-                // Matches the FAQ's exact padding: Top 52px, Sides 40px, Bottom 68px
-                padding: '52px 40px 68px',
-                textAlign: 'center',
-                position: 'relative',
-                overflow: 'hidden',
-                fontFamily: "'Sora', sans-serif"
-            }}>
-                {/* The gold glow effect from the FAQ page */}
-                <div style={{
-                    position: 'absolute',
-                    inset: 0,
-                    background: 'radial-gradient(ellipse 60% 70% at 50% 120%, rgba(212,160,23,0.1) 0%, transparent 70%)'
-                }}/>
-
-                {/* Icon box with SVG - exact size/margin match */}
-                <div style={{
-                    width: 64, height: 64,
-                    background: 'rgba(255,255,255,0.1)',
-                    backdropFilter: 'blur(12px)',
-                    borderRadius: 18,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    margin: '0 auto 22px',
-                    border: '1px solid rgba(255,255,255,0.15)',
-                    position: 'relative',
-                    zIndex: 2
-                }}>
-                    {/* Replaced emoji with your Figma SVG */}
-                    <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="28"
-                        height="28"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="rgb(212, 160, 23)" // Your Figma Gold
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                    >
-                        <path
-                            d="M12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83z"></path>
+            <div style={{background: 'linear-gradient(150deg, #0f2044 0%, #1B3A6B 55%, #1a4a8a 100%)', padding: '52px 40px 68px', textAlign: 'center', position: 'relative', overflow: 'hidden', fontFamily: "'Sora', sans-serif"}}>
+                <div style={{position: 'absolute', inset: 0, background: 'radial-gradient(ellipse 60% 70% at 50% 120%, rgba(212,160,23,0.1) 0%, transparent 70%)'}}/>
+                <div style={{width: 64, height: 64, background: 'rgba(255,255,255,0.1)', backdropFilter: 'blur(12px)', borderRadius: 18, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 22px', border: '1px solid rgba(255,255,255,0.15)', position: 'relative', zIndex: 2}}>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="rgb(212, 160, 23)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83z"></path>
                         <path d="M2 12a1 1 0 0 0 .58.91l8.6 3.91a2 2 0 0 0 1.65 0l8.58-3.9A1 1 0 0 0 22 12"></path>
                         <path d="M2 17a1 1 0 0 0 .58.91l8.6 3.91a2 2 0 0 0 1.65 0l8.58-3.9A1 1 0 0 0 22 17"></path>
                     </svg>
                 </div>
-
-                <h1 style={{
-                    color: '#fff',
-                    fontSize: '2.2rem',
-                    fontWeight: 800,
-                    letterSpacing: '-0.02em',
-                    margin: '0 0 10px',
-                    position: 'relative',
-                    zIndex: 2
-                }}>
-                    Јавни Услуги
-                </h1>
-
-                {/* Added a subheader to fill the space like the FAQ page does */}
-                <p style={{
-                    color: '#93c5fd',
-                    fontSize: '0.92rem',
-                    margin: 0,
-                    position: 'relative',
-                    zIndex: 2
-                }}>
-                    Сите валидни услуги достапни на едно место
-                </p>
+                <h1 style={{color: '#fff', fontSize: '2.2rem', fontWeight: 800, letterSpacing: '-0.02em', margin: '0 0 10px', position: 'relative', zIndex: 2}}>Јавни Услуги</h1>
+                <p style={{color: '#93c5fd', fontSize: '0.92rem', margin: 0, position: 'relative', zIndex: 2}}>Сите валидни услуги достапни на едно место</p>
             </div>
 
-            {/* --- SEARCH & FILTERS --- */}
-            {/* Changed margin from -40px to 40px to remove the overlap/collision */}
             <div style={{maxWidth: "1400px", margin: "40px auto", padding: "0 20px", position: "relative", zIndex: 10}}>
-                <div style={{
-                    backgroundColor: "transparent",
-                    padding: "30px",
-                    borderRadius: "16px",
-                }}>
+                <div style={{backgroundColor: "transparent", padding: "30px", borderRadius: "16px"}}>
                     <div style={{display: "flex", justifyContent: "center", marginBottom: "30px"}}>
                         <div style={{position: "relative", width: "100%", maxWidth: "500px"}}>
-                            <input
-                                type="text"
-                                placeholder="Пребарајте конкретна услуга (пр. Пасош)..."
-                                value={search}
-                                onChange={(e) => setSearch(e.target.value)}
-                                style={{
-                                    width: "100%",
-                                    padding: "16px 20px 16px 50px",
-                                    borderRadius: "30px",
-                                    border: "1px solid #e2e8f0",
-                                    fontSize: "1rem",
-                                    outline: "none",
-                                    boxSizing: "border-box" // Prevents input from expanding past container
-                                }}
-                            />
-                            <span
-                                style={{position: "absolute", left: "20px", top: "50%", transform: "translateY(-50%)"}}>
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2"><circle
-                            cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
-                    </span>
+                            <input type="text" placeholder="Пребарајте конкретна услуга (пр. Пасош)..." value={search} onChange={(e) => setSearch(e.target.value)} style={{width: "100%", padding: "16px 20px 16px 50px", borderRadius: "30px", border: "1px solid #e2e8f0", fontSize: "1rem", outline: "none", boxSizing: "border-box"}}/>
+                            <span style={{position: "absolute", left: "20px", top: "50%", transform: "translateY(-50%)"}}>
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+                            </span>
                         </div>
                     </div>
 
                     <div style={{display: "flex", justifyContent: "center", gap: "12px", flexWrap: "wrap"}}>
-                        {tags.map((tag) => (
-                            <button
-                                key={tag}
-                                onClick={() => setSelectedTag(tag)}
-                                style={{
-                                    padding: "10px 24px", borderRadius: "25px", border: "1px solid",
-                                    borderColor: selectedTag === tag ? "#1B3A6B" : "#e2e8f0",
-                                    backgroundColor: selectedTag === tag ? "#1B3A6B" : "#fff",
-                                    color: selectedTag === tag ? "#fff" : "#64748b",
-                                    fontWeight: "600", cursor: "pointer",
-                                    transition: "all 0.2s ease"
-                                }}
-                            >
-                                {tag}
-                            </button>
+                        {TAGS.map((tag) => (
+                            <button key={tag} onClick={() => setSelectedTag(tag)} style={{padding: "10px 24px", borderRadius: "25px", border: "1px solid", borderColor: selectedTag === tag ? "#1B3A6B" : "#e2e8f0", backgroundColor: selectedTag === tag ? "#1B3A6B" : "#fff", color: selectedTag === tag ? "#fff" : "#64748b", fontWeight: "600", cursor: "pointer", transition: "all 0.2s ease"}}>{tag}</button>
                         ))}
                     </div>
 
                     {isLoggedIn && (
                         <div style={{display: "flex", justifyContent: "center", marginTop: "20px"}}>
-                            <button 
-                                onClick={() => handleCrud('create')} 
-                                style={{
-                                    backgroundColor: "#1B3A6B",
-                                    color: "#fff",
-                                    border: "none",
-                                    padding: "12px 24px",
-                                    borderRadius: "25px",
-                                    cursor: "pointer",
-                                    fontWeight: "600",
-                                    fontSize: "0.9rem",
-                                    transition: "all 0.2s ease"
-                                }}
-                            >
-                                + Додади Услуга
-                            </button>
+                            <button onClick={() => handleCrud('create')} style={{backgroundColor: "#1B3A6B", color: "#fff", border: "none", padding: "12px 24px", borderRadius: "25px", cursor: "pointer", fontWeight: "600", fontSize: "0.9rem", transition: "all 0.2s ease"}}>+ Додади Услуга</button>
                         </div>
                     )}
                 </div>
@@ -649,7 +478,28 @@ export default function Services() {
                                     <p style={{color: "#94a3b8", fontWeight: 500, margin: 0}}>{selectedService.time}</p>
                                 </div>
 
-                                {/* TWO BUTTONS AT THE BOTTOM */}
+                                {/* TEMPLATE ADMIN FOR LOGGED IN USERS */}
+                                    {isLoggedIn && (
+                                        <div style={{marginTop: 12, padding: "10px", backgroundColor: "#f8fafc", borderRadius: "8px", border: "1px solid #e2e8f0"}}>
+                                            <div style={{display: "flex", alignItems: "center", gap: 8, marginBottom: 8}}>
+                                                <div style={{width: 8, height: 8, borderRadius: "50%", backgroundColor: currentTemplate ? "#10b981" : "#ef4444"}}/>
+                                                <span style={{fontSize: "0.85rem", color: "#64748b"}}>
+                                                    {currentTemplate ? "Шаблон постои" : "Нема шаблон"}
+                                                </span>
+                                            </div>
+                                            <div style={{display: "flex", gap: 6}}>
+                                                {!currentTemplate && <button onClick={() => handleTemplateCrud('create')} style={{backgroundColor: "#10b981", color: "#fff", border: "none", padding: "4px 8px", borderRadius: "4px", cursor: "pointer", fontSize: "0.75rem"}}>+ Додади</button>}
+                                                {currentTemplate && (
+                                                    <>
+                                                        <button onClick={() => handleTemplateCrud('edit')} style={{backgroundColor: "#3b82f6", color: "#fff", border: "none", padding: "4px 8px", borderRadius: "4px", cursor: "pointer", fontSize: "0.75rem"}}>Измени</button>
+                                                        <button onClick={() => handleTemplateCrud('delete')} style={{backgroundColor: "#ef4444", color: "#fff", border: "none", padding: "4px 8px", borderRadius: "4px", cursor: "pointer", fontSize: "0.75rem"}}>Избриши</button>
+                                                    </>
+                                                )}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* TWO BUTTONS AT THE BOTTOM */}
                                 <div style={{marginTop: "auto", display: "flex", flexDirection: "column", gap: 12}}>
                                     <div style={{display: 'flex', gap: 8, marginBottom: 8}}>
                                         <select value={selectedFormat} onChange={(e) => setSelectedFormat(e.target.value)} style={{padding: '8px', borderRadius: 8, border: '1px solid #e2e8f0'}}>
@@ -925,6 +775,24 @@ export default function Services() {
                     </div>
                 </div>
             </footer>
+
+            {/* --- TEMPLATE MODAL --- */}
+            {showTemplateModal && (
+                <div style={{position: "fixed", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "rgba(0,0,0,0.6)", display: "flex", justifyContent: "center", alignItems: "center", zIndex: 1000}} onClick={() => setShowTemplateModal(false)}>
+                    <div style={{backgroundColor: "#fff", padding: "30px", borderRadius: "12px", width: "100%", maxWidth: "500px", position: "relative"}} onClick={(e) => e.stopPropagation()}>
+                        <button style={{position: "absolute", top: "10px", right: "10px", border: "none", background: "none", fontSize: "20px", cursor: "pointer"}} onClick={() => setShowTemplateModal(false)}>&times;</button>
+                        <h3 style={{marginBottom: "20px", color: "#1e293b"}}>{templateMode === 'create' ? 'Нов Шаблон' : 'Измени Шаблон'}</h3>
+                        <form onSubmit={(e) => {e.preventDefault(); submitTemplate();}} style={{display: "flex", flexDirection: "column", gap: "15px"}}>
+                            <input type="text" placeholder="Наслов" value={templateData.title} onChange={(e) => setTemplateData({...templateData, title: e.target.value})} style={{padding: "10px", border: "1px solid #d1d5db", borderRadius: "6px"}} required/>
+                            <textarea placeholder="Template Body (JSON)" value={templateData.template_body} onChange={(e) => setTemplateData({...templateData, template_body: e.target.value})} style={{padding: "10px", border: "1px solid #d1d5db", borderRadius: "6px", minHeight: "100px"}} required/>
+                            <div style={{display: "flex", gap: "10px"}}>
+                                <button type="submit" style={{flex: 1, padding: "10px", backgroundColor: "#1B3A6B", color: "#fff", border: "none", borderRadius: "6px", cursor: "pointer"}}>{templateMode === 'create' ? 'Креирај' : 'Ажурирај'}</button>
+                                <button type="button" onClick={() => setShowTemplateModal(false)} style={{flex: 1, padding: "10px", backgroundColor: "#6b7280", color: "#fff", border: "none", borderRadius: "6px", cursor: "pointer"}}>Откажи</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
