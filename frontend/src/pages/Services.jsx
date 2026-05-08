@@ -31,76 +31,8 @@ export default function Services() {
     const [selectedServiceForCrud, setSelectedServiceForCrud] = useState(null);
     const [crudError, setCrudError] = useState('');
     const [formData, setFormData] = useState({service_id: '', name: '', category: 'documents', description: '', processing_time_days: 0, location: ''});
-    const [showTemplateModal, setShowTemplateModal] = useState(false);
-    const [templateMode, setTemplateMode] = useState('create');
-    const [templateData, setTemplateData] = useState({service_id: '', title: '', template_body: '', is_active: true});
-    const [currentTemplate, setCurrentTemplate] = useState(null);
-
-    // --- TEMPLATE HANDLERS ---
-    const handleTemplateCrud = (mode) => {
-        setTemplateMode(mode);
-        if (mode === 'create') {
-            setTemplateData({service_id: selectedService?.service_id || '', title: '', template_body: '', is_active: true});
-        } else if (mode === 'edit' && currentTemplate) {
-            setTemplateData({
-                service_id: currentTemplate.service_id,
-                title: currentTemplate.title,
-                template_body: JSON.stringify(currentTemplate.template_body, null, 2),
-                is_active: currentTemplate.is_active
-            });
-        }
-        setShowTemplateModal(true);
-    };
-
-    const submitTemplate = async () => {
-        const token = localStorage.getItem("token");
-        let url = "http://127.0.0.1:8000/service-document-templates";
-        let method = "POST";
-        
-        if (templateMode === 'edit') {
-            url += `/${templateData.service_id}`;
-            method = "PUT";
-        } else if (templateMode === 'delete') {
-            url += `/${currentTemplate.service_id}`;
-            method = "DELETE";
-        }
-        
-        try {
-            const response = await fetch(url, {
-                method,
-                headers: {"Content-Type": "application/json", "Authorization": `Bearer ${token}`},
-                body: templateMode !== 'delete' ? JSON.stringify({...templateData, template_body: JSON.parse(templateData.template_body)}) : undefined
-            });
-            if (response.ok) {
-                setShowTemplateModal(false);
-                if (templateMode === 'delete') {
-                    setCurrentTemplate(null);
-                } else {
-                    fetchTemplateForService(selectedService.service_id);
-                }
-            }
-        } catch (err) {
-            console.error('Template error:', err);
-        }
-    };
-
-    const fetchTemplateForService = async (serviceId) => {
-        const token = localStorage.getItem("token");
-        try {
-            const response = await fetch(`http://127.0.0.1:8000/service-document-templates/${serviceId}`, {
-                headers: {"Authorization": `Bearer ${token}`}
-            });
-            if (response.ok) {
-                const template = await response.json();
-                setCurrentTemplate(template);
-            } else {
-                setCurrentTemplate(null);
-            }
-        } catch (err) {
-            setCurrentTemplate(null);
-        }
-    };
-
+    
+    
     const handleCrud = async (mode, service = null) => {
         setModalMode(mode);
         setSelectedServiceForCrud(service);
@@ -284,12 +216,7 @@ export default function Services() {
         if (filtered.length === 0) setSelectedService(null);
     }, [filtered, selectedService]);
 
-    useEffect(() => {
-        if (selectedService && isLoggedIn) {
-            fetchTemplateForService(selectedService.service_id);
-        }
-    }, [selectedService, isLoggedIn]);
-
+    
     return (
         <div style={{backgroundColor: "#f8fafc", minHeight: "100vh"}}>
             {/* NAVBAR REMOVED - Managed by App.js wrapper */}
@@ -478,27 +405,7 @@ export default function Services() {
                                     <p style={{color: "#94a3b8", fontWeight: 500, margin: 0}}>{selectedService.time}</p>
                                 </div>
 
-                                {/* TEMPLATE ADMIN FOR LOGGED IN USERS */}
-                                    {isLoggedIn && (
-                                        <div style={{marginTop: 12, padding: "10px", backgroundColor: "#f8fafc", borderRadius: "8px", border: "1px solid #e2e8f0"}}>
-                                            <div style={{display: "flex", alignItems: "center", gap: 8, marginBottom: 8}}>
-                                                <div style={{width: 8, height: 8, borderRadius: "50%", backgroundColor: currentTemplate ? "#10b981" : "#ef4444"}}/>
-                                                <span style={{fontSize: "0.85rem", color: "#64748b"}}>
-                                                    {currentTemplate ? "Шаблон постои" : "Нема шаблон"}
-                                                </span>
-                                            </div>
-                                            <div style={{display: "flex", gap: 6}}>
-                                                {!currentTemplate && <button onClick={() => handleTemplateCrud('create')} style={{backgroundColor: "#10b981", color: "#fff", border: "none", padding: "4px 8px", borderRadius: "4px", cursor: "pointer", fontSize: "0.75rem"}}>+ Додади</button>}
-                                                {currentTemplate && (
-                                                    <>
-                                                        <button onClick={() => handleTemplateCrud('edit')} style={{backgroundColor: "#3b82f6", color: "#fff", border: "none", padding: "4px 8px", borderRadius: "4px", cursor: "pointer", fontSize: "0.75rem"}}>Измени</button>
-                                                        <button onClick={() => handleTemplateCrud('delete')} style={{backgroundColor: "#ef4444", color: "#fff", border: "none", padding: "4px 8px", borderRadius: "4px", cursor: "pointer", fontSize: "0.75rem"}}>Избриши</button>
-                                                    </>
-                                                )}
-                                            </div>
-                                        </div>
-                                    )}
-
+                                
                                     {/* TWO BUTTONS AT THE BOTTOM */}
                                 <div style={{marginTop: "auto", display: "flex", flexDirection: "column", gap: 12}}>
                                     <div style={{display: 'flex', gap: 8, marginBottom: 8}}>
@@ -776,23 +683,6 @@ export default function Services() {
                 </div>
             </footer>
 
-            {/* --- TEMPLATE MODAL --- */}
-            {showTemplateModal && (
-                <div style={{position: "fixed", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "rgba(0,0,0,0.6)", display: "flex", justifyContent: "center", alignItems: "center", zIndex: 1000}} onClick={() => setShowTemplateModal(false)}>
-                    <div style={{backgroundColor: "#fff", padding: "30px", borderRadius: "12px", width: "100%", maxWidth: "500px", position: "relative"}} onClick={(e) => e.stopPropagation()}>
-                        <button style={{position: "absolute", top: "10px", right: "10px", border: "none", background: "none", fontSize: "20px", cursor: "pointer"}} onClick={() => setShowTemplateModal(false)}>&times;</button>
-                        <h3 style={{marginBottom: "20px", color: "#1e293b"}}>{templateMode === 'create' ? 'Нов Шаблон' : 'Измени Шаблон'}</h3>
-                        <form onSubmit={(e) => {e.preventDefault(); submitTemplate();}} style={{display: "flex", flexDirection: "column", gap: "15px"}}>
-                            <input type="text" placeholder="Наслов" value={templateData.title} onChange={(e) => setTemplateData({...templateData, title: e.target.value})} style={{padding: "10px", border: "1px solid #d1d5db", borderRadius: "6px"}} required/>
-                            <textarea placeholder="Template Body (JSON)" value={templateData.template_body} onChange={(e) => setTemplateData({...templateData, template_body: e.target.value})} style={{padding: "10px", border: "1px solid #d1d5db", borderRadius: "6px", minHeight: "100px"}} required/>
-                            <div style={{display: "flex", gap: "10px"}}>
-                                <button type="submit" style={{flex: 1, padding: "10px", backgroundColor: "#1B3A6B", color: "#fff", border: "none", borderRadius: "6px", cursor: "pointer"}}>{templateMode === 'create' ? 'Креирај' : 'Ажурирај'}</button>
-                                <button type="button" onClick={() => setShowTemplateModal(false)} style={{flex: 1, padding: "10px", backgroundColor: "#6b7280", color: "#fff", border: "none", borderRadius: "6px", cursor: "pointer"}}>Откажи</button>
-                            </div>
-                        </form>
                     </div>
-                </div>
-            )}
-        </div>
     );
 }

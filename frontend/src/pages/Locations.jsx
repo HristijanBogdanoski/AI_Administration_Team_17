@@ -56,7 +56,9 @@ const LocationsPage = () => {
     try {
       const institution = formData.office_name || formData.service_name;
       const address = formData.address;
-      const response = await fetch(`http://127.0.0.1:8000/location/map?institution=${encodeURIComponent(institution)}&address=${encodeURIComponent(address)}`);
+      const institutionParam = address || institution;
+      const addressParam = address;
+      const response = await fetch(`http://127.0.0.1:8000/location/map?institution=${encodeURIComponent(institutionParam)}&address=${encodeURIComponent(addressParam)}`);
       if (response.ok) {
         const result = await response.json();
         setFormData(prev => ({
@@ -277,10 +279,6 @@ const LocationsPage = () => {
                     <div className="col-6"><div className="p-3 bg-light rounded-4 h-100"><small className="text-muted fw-bold d-block mb-1">ЛОКАЦИЈА</small><span className="small fw-medium">{selectedLoc.address}</span></div></div>
                     <div className="col-6"><div className="p-3 bg-light rounded-4 h-100"><small className="text-muted fw-bold d-block mb-1">РАБОТНО ВРЕМЕ</small><span className="small fw-medium">{selectedLoc.working_hours}</span></div></div>
                   </div>
-                  <div className="mt-4 d-flex gap-3">
-                    <button className="btn py-3 flex-grow-1 text-white fw-bold shadow-sm" style={{ background: '#1a3a5f', borderRadius: '15px' }}>Јавете се</button>
-                    <button className="btn btn-outline-dark py-3 px-4 shadow-sm" style={{ borderRadius: '15px' }}>Насоки</button>
-                  </div>
                 </div>
               </div>
             )}
@@ -427,6 +425,91 @@ const LocationsPage = () => {
           </div>
         </div>
       )}
+        <footer style={{background: '#0f2044', padding: '48px 60px 24px', fontFamily: "'Sora', sans-serif"}}>
+                <div style={{maxWidth: 1100, margin: '0 auto'}}>
+                    <div style={{
+                        display: 'grid',
+                        gridTemplateColumns: '2fr 1fr 1fr',
+                        gap: 48,
+                        paddingBottom: 40,
+                        borderBottom: '1px solid rgba(255,255,255,0.08)'
+                    }}>
+                        <div>
+                            <div style={{display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16}}>
+                                <div style={{
+                                    width: 32,
+                                    height: 32,
+                                    borderRadius: 8,
+                                    background: 'rgba(212,160,23,0.2)',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    fontSize: 16
+                                }}>🛡️
+                                </div>
+                                <span style={{color: '#D4A017', fontWeight: 700, fontSize: '1rem'}}>е-Влада</span>
+                            </div>
+                            <p style={{color: 'rgba(255,255,255,0.5)', fontSize: '0.82rem', lineHeight: 1.7}}>
+                                Официјален портал на Владата на Република Северна Македонија за јавни услуги и
+                                информации.
+                            </p>
+                        </div>
+                        <div>
+                            <h4 style={{
+                                color: '#D4A017',
+                                fontSize: '0.82rem',
+                                fontWeight: 700,
+                                letterSpacing: '0.08em',
+                                textTransform: 'uppercase',
+                                marginBottom: 16
+                            }}>Брзи врски</h4>
+                            {[
+                                {name: 'Дома', path: '/'},
+                                {name: 'ЧПП', path: '/faq'},
+                                {name: 'Услуги', path: '/services'},
+                                {name: 'Локација', path: '/'}
+                            ].map(link => (
+                                <div
+                                    key={link.name}
+                                    style={{
+                                        color: 'rgba(255,255,255,0.5)',
+                                        fontSize: '0.82rem',
+                                        padding: '4px 0',
+                                        cursor: 'pointer'
+                                    }}
+                                    onClick={() => navigate(link.path)}
+                                >
+                                    {link.name}
+                                </div>
+                            ))}
+                        </div>
+                        <div>
+                            <h4 style={{
+                                color: '#D4A017',
+                                fontSize: '0.82rem',
+                                fontWeight: 700,
+                                letterSpacing: '0.08em',
+                                textTransform: 'uppercase',
+                                marginBottom: 16
+                            }}>Контакт</h4>
+                            <p style={{color: 'rgba(255,255,255,0.5)', fontSize: '0.82rem', padding: '3px 0'}}>📞 +389 2
+                                3145 100</p>
+                            <p style={{color: 'rgba(255,255,255,0.5)', fontSize: '0.82rem', padding: '3px 0'}}>✉️
+                                info@vlada.gov.mk</p>
+                            <p style={{color: 'rgba(255,255,255,0.5)', fontSize: '0.82rem', padding: '3px 0'}}>📍
+                                Илинденска б.б., Скопје</p>
+                        </div>
+                    </div>
+                    <div style={{
+                        textAlign: 'center',
+                        paddingTop: 24,
+                        color: 'rgba(255,255,255,0.25)',
+                        fontSize: '0.75rem'
+                    }}>
+                        © 2026 Влада на Република Северна Македонија. Сите права се задржани.
+                    </div>
+                </div>
+            </footer>
     </div>
   );
 };
