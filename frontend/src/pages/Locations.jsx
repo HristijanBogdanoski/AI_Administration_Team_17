@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useLocation } from 'react-router-dom';
+import Footer from '../components/Footer';
 
 const LocationsPage = () => {
   const routerLocation = useLocation();
@@ -14,7 +15,7 @@ const LocationsPage = () => {
   const [modalMode, setModalMode] = useState('create');
   const [selectedLocationForCrud, setSelectedLocationForCrud] = useState(null);
   const [formData, setFormData] = useState({
-    service_id: '',
+    service_id: null,
     service_name: '',
     office_name: '',
     address: '',
@@ -85,7 +86,7 @@ const LocationsPage = () => {
     setSelectedLocationForCrud(location);
     setGeocodingError('');
     if (mode === 'create') {
-      setFormData({ service_id: '', service_name: '', office_name: '', address: '', coordinates: { lat: null, lng: null }, working_hours: '', contact_email: '', notes: '' });
+      setFormData({ service_id: null, service_name: '', office_name: '', address: '', coordinates: { lat: null, lng: null }, working_hours: '', contact_email: '', notes: '' });
     } else if (mode === 'edit' && location) {
       setFormData({
         service_id: location.service_id || '',
@@ -106,14 +107,14 @@ const LocationsPage = () => {
     let lngVal = parseFloat(formData.coordinates?.lng);
 
     console.log("Form data:", formData);
-  console.log("lat:", latVal, "lng:", lngVal);
+    console.log("lat:", latVal, "lng:", lngVal);
 
     if (modalMode !== 'delete') {
       if (isNaN(latVal) || isNaN(lngVal)) {
         setGeocodingError('Invalid coordinates');
         return;
       }
-      if (!formData.service_id?.trim() || !formData.service_name?.trim() || !formData.office_name?.trim() || !formData.address?.trim() || !formData.working_hours?.trim() || !formData.contact_email?.trim()) {
+      if (!formData.service_id || !formData.service_name?.trim() || !formData.office_name?.trim() || !formData.address?.trim() || !formData.working_hours?.trim() || !formData.contact_email?.trim()) {
         setGeocodingError('Сите задолжителни полиња мораат да бидат пополнети');
         return;
       }
@@ -306,15 +307,12 @@ const LocationsPage = () => {
                 <select 
                   value={formData.service_id} 
                   onChange={(e) => {
-                    const selected = availableServices.find(s => s.service_id === e.target.value);
-                    console.log("Selected service:", selected); // temporary debug
+                    const selected = availableServices.find(s => s.id === parseInt(e.target.value));
                     setFormData({ 
                       ...formData, 
-                      service_id: e.target.value, 
+                      service_id: parseInt(e.target.value), 
                       service_name: selected?.name || '',
-                      // Auto-fill location from service if available
                       address: selected?.location || formData.address,
-                      // Auto-generate office name based on service name if empty
                       office_name: formData.office_name || (selected?.name ? `Главна канцеларија - ${selected.name}` : '')
                     });
                   }}
@@ -323,8 +321,8 @@ const LocationsPage = () => {
                 >
                   <option value="">Изберете услуга...</option>
                   {availableServices.map(service => (
-                    <option key={service.service_id} value={service.service_id}>
-                      {service.service_name} ({service.service_id})
+                    <option key={service.id} value={service.id}>
+                      {service.name}
                     </option>
                   ))}
                 </select>

@@ -19,7 +19,7 @@ from app.models.service_office import ServiceOffice
 OFFICES = [
     {
         "service_id": "passport-renewal",
-        "service_name": "Обнова на Пасош",
+        "service_name": "Пасош",
         "office_name": "Министерство за внатрешни работи – Оддел за пасоши",
         "address": "Димитар Влахов бб, 1000 Скопје",
         "latitude": 41.9981,
@@ -62,26 +62,26 @@ OFFICES = [
         "notes": "Онлајн поднесување е достапно на e-ujp.ujp.gov.mk. Посета на шалтер е потребна само за посложени случаи.",
     },
     {
-        "service_id": "unemployment-benefit",
-        "service_name": "Надоместок за Невработеност",
-        "office_name": "Агенција за вработување – Центар Скопје",
-        "address": "Јане Сандански 39, 1000 Скопје",
-        "latitude": 41.9901,
-        "longitude": 21.4406,
-        "working_hours": "Пон–Пет 08:00–16:00",
-        "contact_email": "info@avrm.gov.mk",
-        "notes": "Понесете доказ за претходно вработување и важечка лична карта. Регистрацијата е во рок од 30 дена од престанок на работа.",
+        "service_id": "social-welfare",
+        "service_name": "Социјална Помош",
+        "office_name": "Министерство за труд и социјална политика – Центар Скопје",
+        "address": "Шило Мечев 6, 1000 Скопје",
+        "latitude": 41.9960,
+        "longitude": 21.4280,
+        "working_hours": "Пон–Пет 07:30–15:30",
+        "contact_email": "info@mtsp.gov.mk",
+        "notes": "Понесете важеќка лична карта и доказ за доход. Потребни документи варираат во зависност од видот на помош."
     },
     {
-        "service_id": "health-insurance-card",
-        "service_name": "Картичка за Здравствено Осигурување",
+        "service_id": "health-insurance",
+        "service_name": "Здравствено Осигурување",
         "office_name": "Фонд за здравствено осигурување – Регионална канцеларија Скопје",
-        "address": "Македонија 12, 1000 Скопје",
-        "latitude": 41.9959,
-        "longitude": 21.4318,
-        "working_hours": "Пон–Пет 08:30–16:00",
-        "contact_email": "fond@fzo.org.mk",
-        "notes": "Потребен е доказ за активно вработување или пензија. Обработката трае до 5 работни дена.",
+        "address": "Георги Осог 2, 1000 Скопје",
+        "latitude": 41.9945,
+        "longitude": 21.4325,
+        "working_hours": "Пон–Пет 08:00–16:30",
+        "contact_email": "info@fzo.org.mk",
+        "notes": "Потребен е доказ за активно вработување или пенжија. Обработката трае до 10 работни дена.̆"
     },
     {
         "service_id": "land-registry",
@@ -96,7 +96,7 @@ OFFICES = [
     },
     {
         "service_id": "business-registration",
-        "service_name": "Регистрација на Фирма",
+        "service_name": "Регистрација Фирма",
         "office_name": "Централен регистар на Северна Македонија",
         "address": "Св. Климент Охридски 4, 1000 Скопје",
         "latitude": 41.9935,
@@ -111,27 +111,30 @@ OFFICES = [
 def seed() -> None:
     db = SessionLocal()
     try:
-        # Load existing services and offices
-        existing_services = {row.service_id for row in db.query(Service.service_id).all()}
+        # Load existing services (by name -> id) and existing office service_ids
+        existing_services = {row.name: row.id for row in db.query(Service.name, Service.id).all()}
         existing_office_ids = {row.service_id for row in db.query(ServiceOffice.service_id).all()}
         
         new_offices = []
         skipped = 0
         
         for data in OFFICES:
-            service_id = data["service_id"]
-            
-            # Skip if service doesn't exist
-            if service_id not in existing_services:
-                print(f"⚠ Skipping office for '{service_id}' – service does not exist.")
+            service_slug = data.get("service_id")
+            service_name = data.get("service_name")
+
+            svc_id = existing_services.get(service_name)
+            if svc_id is None:
+                print(f"⚠ Skipping office for '{service_slug}' ({service_name}) – parent service not found.")
                 skipped += 1
                 continue
-            
-            # Skip if office already exists
-            if service_id in existing_office_ids:
+
+            # Skip if office already exists for that service id
+            if svc_id in existing_office_ids:
                 continue
-            
-            new_offices.append(ServiceOffice(**data))
+
+            office_data = data.copy()
+            office_data["service_id"] = svc_id
+            new_offices.append(ServiceOffice(**office_data))
         
         if new_offices:
             db.add_all(new_offices)

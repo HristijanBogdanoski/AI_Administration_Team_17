@@ -1,6 +1,7 @@
 import React, {useEffect, useState} from "react";
 import {useNavigate} from "react-router-dom";
 import '../index.css';
+import Footer from '../components/Footer';
 
 const CATEGORY_TO_TAG = {documents: "Документи", taxes: "Даноци", social: "Социјални", business: "Деловни", education: "Услуги", utilities: "Институции"};
 const CATEGORY_TO_COLOR = {documents: "#1B3A6B", taxes: "#CE2028", social: "rgb(212,160,23)", business: "rgb(22,101,52)", education: "#8B5CF6", utilities: "rgb(3,105,161)"};
@@ -38,11 +39,10 @@ export default function Services() {
         setSelectedServiceForCrud(service);
         setCrudError('');
         if (mode === 'create') {
-            setFormData({service_id: '', name: '', category: 'documents', description: '', processing_time_days: 0, location: '', details: []});
+            setFormData({name: '', category: 'documents', description: '', processing_time_days: 0, location: '', details: []});
         } else if (mode === 'edit' && service) {
             const processingDays = service.time === 'Веднаш' ? 0 : (typeof service.time === 'number' ? service.time : parseInt(service.time) || 0);
             setFormData({
-                service_id: service.service_id,
                 name: service.name,
                 category: Object.keys(CATEGORY_TO_TAG).find(k => CATEGORY_TO_TAG[k] === service.tag) || 'documents',
                 description: service.desc,
@@ -68,9 +68,9 @@ export default function Services() {
         }
 
         if (modalMode === 'create') {
-            const existingService = services.find(s => s.service_id === formData.service_id);
+            const existingService = services.find(s => s.name === formData.name);
             if (existingService) {
-                setCrudError(`Услуга со ID "${formData.service_id}" веќе постои ("${existingService.name}"). Изберете друг ID.`);
+                setCrudError(`Услуга со име "${formData.name}" веќе постои. Изберете друго име.`);
                 return;
             }
         }
@@ -156,7 +156,6 @@ export default function Services() {
                 const data = await res.json();
                 const mapped = data.map((service) => ({
                     id: service.id,
-                    service_id: service.service_id,
                     name: service.name,
                     desc: service.description || "Нема опис за оваа услуга.",
                     tag: CATEGORY_TO_TAG[service.category] || "Услуги",
@@ -195,16 +194,16 @@ export default function Services() {
     };
 
     const handleDownloadDocument = async () => {
-        if (!selectedService?.service_id) return;
+        if (!selectedService?.id) return;
         try {
-            const response = await fetch(`http://127.0.0.1:8000/service-document-templates/${selectedService.service_id}/download?format=${encodeURIComponent(selectedFormat)}`);
+            const response = await fetch(`http://127.0.0.1:8000/service-document-templates/${selectedService.id}/download?format=${encodeURIComponent(selectedFormat)}`);
             if (!response.ok) {
                 console.error("Неуспешно преземање на документот.");
                 return;
             }
             const blob = await response.blob();
             const ext = selectedFormat === 'pdf' ? 'pdf' : selectedFormat === 'docx' ? 'docx' : 'txt';
-            downloadBlob(blob, `${selectedService.service_id}-application-form.${ext}`);
+            downloadBlob(blob, `${selectedService.id}-application-form.${ext}`);
         } catch {
             console.error("Грешка при преземање на документот.");
         }
@@ -442,7 +441,7 @@ export default function Services() {
                                         onClick={async () => {
                                             navigate('/locations', {
                                                 state: {
-                                                    serviceId: selectedService.service_id || null,
+                                                    serviceId: selectedService.id || null,
                                                     serviceName: selectedService.name || null,
                                                 },
                                             });
@@ -493,7 +492,7 @@ export default function Services() {
                         {modalMode === 'delete' ? (
                             <div>
                                 <p style={{marginBottom: "20px", color: "#6b7280"}}>
-                                    Дали сте сигурни дека сакате да ја избришете услугата "<strong>{selectedServiceForCrud?.name}</strong>" (ID: <strong>{selectedServiceForCrud?.service_id}</strong>)?
+                                    Дали сте сигурни дека сакате да ја избришете услугата "<strong>{selectedServiceForCrud?.name}</strong>"?
                                 </p>
                                 <div style={{display: "flex", gap: "10px"}}>
                                     <button onClick={submitCrud} style={{flex: 1, padding: "10px", backgroundColor: "#dc2626", color: "#fff", border: "none", borderRadius: "6px", cursor: "pointer"}}>Избриши</button>
@@ -502,41 +501,6 @@ export default function Services() {
                             </div>
                         ) : (
                             <form onSubmit={(e) => {e.preventDefault(); submitCrud();}} style={{display: "flex", flexDirection: "column", gap: "15px"}}>
-                                {modalMode === 'edit' && (
-                                    <div style={{marginBottom: "10px"}}>
-                                        <small style={{color: "#6b7280", fontSize: "0.8rem", display: "block", marginBottom: "5px"}}>
-                                            ID на Услуга (не може да се промени):
-                                        </small>
-                                        <input 
-                                            type="text" 
-                                            value={formData.service_id} 
-                                            disabled
-                                            style={{
-                                                padding: "10px", 
-                                                border: "1px solid #d1d5db", 
-                                                borderRadius: "6px",
-                                                backgroundColor: "#f3f4f6",
-                                                color: "#6b7280",
-                                                fontWeight: "bold"
-                                            }} 
-                                            readOnly
-                                        />
-                                    </div>
-                                )}
-                                {modalMode === 'create' && (
-                                    <input 
-                                        type="text" 
-                                        placeholder="ID на Услуга *" 
-                                        value={formData.service_id} 
-                                        onChange={(e) => setFormData({...formData, service_id: e.target.value})}
-                                        style={{
-                                            padding: "10px", 
-                                            border: "1px solid #d1d5db", 
-                                            borderRadius: "6px"
-                                        }} 
-                                        required 
-                                    />
-                                )}
                                 <input 
                                     type="text" 
                                     placeholder="Име на Услуга *" 
@@ -545,11 +509,6 @@ export default function Services() {
                                     style={{padding: "10px", border: "1px solid #d1d5db", borderRadius: "6px"}} 
                                     required 
                                 />
-                                {modalMode === 'create' && formData.service_id && (
-                                    <div style={{fontSize: "0.75rem", color: "#6b7280", marginTop: "-10px", paddingLeft: "4px"}}>
-                                        ID: <strong>{formData.service_id}</strong>
-                                    </div>
-                                )}
                                 <select value={formData.category} onChange={(e) => setFormData({...formData, category: e.target.value})} style={{padding: "10px", border: "1px solid #d1d5db", borderRadius: "6px"}}>
                                     <option value="documents">Документи</option>
                                     <option value="taxes">Даноци</option>

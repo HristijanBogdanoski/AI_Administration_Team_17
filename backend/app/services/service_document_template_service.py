@@ -177,11 +177,11 @@ def text_to_docx_bytes(text: str) -> bytes:
     return buffer.read()
 
 
-def service_exists_by_service_id(db: Session, service_id: str) -> bool:
-    return db.query(Service.id).filter(Service.service_id == service_id).first() is not None
+def service_exists_by_service_id(db: Session, service_id: int) -> bool:
+    return db.query(Service.id).filter(Service.id == service_id).first() is not None
 
 
-def get_template_by_service_id(db: Session, service_id: str) -> ServiceDocumentTemplate | None:
+def get_template_by_service_id(db: Session, service_id: int) -> ServiceDocumentTemplate | None:
     return (
         db.query(ServiceDocumentTemplate)
         .filter(ServiceDocumentTemplate.service_id == service_id)
@@ -215,12 +215,12 @@ def apply_template_update(
 
 
 def create_blank_template_for_service(db: Session, service: Service) -> ServiceDocumentTemplate:
-    existing_template = get_template_by_service_id(db, service.service_id)
+    existing_template = get_template_by_service_id(db, service.id)
     if existing_template is not None:
         return existing_template
 
     template = ServiceDocumentTemplate(
-        service_id=service.service_id,
+        service_id=service.id,
         title=f"{service.name} - формулар за апликација",
         template_type="json",
         template_body=build_default_template_body(service.name),
@@ -235,7 +235,7 @@ def create_blank_template_for_service(db: Session, service: Service) -> ServiceD
 def get_template_by_service_name(db: Session, service_name: str) -> ServiceDocumentTemplate | None:
     return (
         db.query(ServiceDocumentTemplate)
-        .join(Service, ServiceDocumentTemplate.service_id == Service.service_id)
+        .join(Service, ServiceDocumentTemplate.service_id == Service.id)
         .filter(Service.name == service_name)
         .first()
     )
@@ -246,9 +246,9 @@ def detect_template_from_uploaded_document(
     filename: str,
     document_text: str,
 ) -> ServiceDocumentTemplate | None:
-    filename_match = re.match(r"^(?P<service_id>.+?)-application-form(?:-filled)?\.txt$", filename)
+    filename_match = re.match(r"^(?P<service_id>\d+?)-application-form(?:-filled)?\.txt$", filename)
     if filename_match:
-        template = get_template_by_service_id(db, filename_match.group("service_id"))
+        template = get_template_by_service_id(db, int(filename_match.group("service_id")))
         if template is not None:
             return template
 

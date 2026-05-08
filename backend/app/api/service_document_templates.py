@@ -30,7 +30,7 @@ router = APIRouter(prefix="/service-document-templates", tags=["Service Document
 
 
 @router.get("/{service_id}", response_model=ServiceDocumentTemplateOut, dependencies=[Depends(require_admin)])
-def get_template(service_id: str, db: Session = Depends(get_db)):
+def get_template(service_id: int, db: Session = Depends(get_db)):
     template = get_template_by_service_id(db, service_id)
     if template is None:
         raise HTTPException(status_code=404, detail="Template not found")
@@ -40,12 +40,12 @@ def get_template(service_id: str, db: Session = Depends(get_db)):
 @router.post("", response_model=ServiceDocumentTemplateOut, status_code=status.HTTP_201_CREATED, dependencies=[Depends(require_admin)])
 def create_or_replace_template(payload: ServiceDocumentTemplateCreate, db: Session = Depends(get_db)):
     if not service_exists_by_service_id(db, payload.service_id):
-        raise HTTPException(status_code=404, detail=f"Service with service_id '{payload.service_id}' does not exist.")
+        raise HTTPException(status_code=404, detail=f"Service with id '{payload.service_id}' does not exist.")
     return upsert_template(db, payload)
 
 
 @router.put("/{service_id}", response_model=ServiceDocumentTemplateOut, dependencies=[Depends(require_admin)])
-def update_template(service_id: str, payload: ServiceDocumentTemplateUpdate, db: Session = Depends(get_db)):
+def update_template(service_id: int, payload: ServiceDocumentTemplateUpdate, db: Session = Depends(get_db)):
     template = get_template_by_service_id(db, service_id)
     if template is None:
         raise HTTPException(status_code=404, detail="Template not found")
@@ -57,7 +57,7 @@ def update_template(service_id: str, payload: ServiceDocumentTemplateUpdate, db:
 
 
 @router.get("/{service_id}/download")
-def download_blank_template(service_id: str, format: str = "txt", db: Session = Depends(get_db)):
+def download_blank_template(service_id: int, format: str = "txt", db: Session = Depends(get_db)):
     template = get_template_by_service_id(db, service_id)
     if template is None:
         raise HTTPException(status_code=404, detail="Template not found")
@@ -85,7 +85,7 @@ def download_blank_template(service_id: str, format: str = "txt", db: Session = 
 
 @router.post("/{service_id}/auto-fill")
 def auto_fill_template(
-    service_id: str,
+    service_id: int,
     payload: ServiceDocumentTemplateFillRequest,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -172,6 +172,6 @@ async def upload_and_fill_template(
         media_type=media_type,
         headers={
             "Content-Disposition": f'attachment; filename="{filename}"',
-            "X-Detected-Service-Id": template.service_id,
+            "X-Detected-Service-Id": str(template.service_id),
         },
     )

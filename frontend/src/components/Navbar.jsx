@@ -44,12 +44,18 @@ function Navbar() {
 
             {/* Navbar */}
             <nav style={{
-                background: '#1B3A6B', padding: '0 40px', display: 'flex',
-                alignItems: 'center', justifyContent: 'space-between',
-                height: 64, position: 'sticky', top: 0, zIndex: 100
+                background: '#1B3A6B',
+                padding: '0 40px',
+                display: 'grid',
+                gridTemplateColumns: '1fr auto 1fr',
+                alignItems: 'center',
+                height: 64,
+                position: 'sticky',
+                top: 0,
+                zIndex: 100
             }}>
                 {/* Logo */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer' }} onClick={() => navigate('/')}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer', justifySelf: 'start' }} onClick={() => navigate('/')}>
                     <div style={{ width: 40, height: 40, borderRadius: 10, background: 'rgba(212,160,23,.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20 }}>🛡️</div>
                     <div>
                         <div style={{ color: '#D4A017', fontWeight: 700, fontSize: '1rem' }}>е-Влада</div>
@@ -58,7 +64,7 @@ function Navbar() {
                 </div>
 
                 {/* Links */}
-                <div style={{ display: 'flex', gap: 4 }}>
+                <div style={{ display: 'flex', gap: 4, justifySelf: 'center' }}>
                     {NAV_LINKS.map(({ label, path }) => {
                         const active = location.pathname === path;
                         return (
@@ -82,7 +88,7 @@ function Navbar() {
 
                 {/* Auth */}
                 {isLoggedIn ? (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, justifySelf: 'end', minWidth: 220, justifyContent: 'flex-end' }}>
                         <button
                             onClick={() => navigate('/profile')}
                             style={{
@@ -107,7 +113,7 @@ function Navbar() {
                         style={{
                             background: '#D4A017',
                             color: '#0f2044', border: 'none', padding: '9px 22px',
-                            borderRadius: 8, fontWeight: 700, cursor: 'pointer', fontSize: '17px'
+                            borderRadius: 8, fontWeight: 700, cursor: 'pointer', fontSize: '17px', justifySelf: 'end'
                         }}
                     >
                         Најава

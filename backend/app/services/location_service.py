@@ -41,30 +41,44 @@ def get_service_location_by_id(db: Session, location_id: int) -> ServiceOffice |
 
 def get_service_locations(db: Session, service: str) -> list[ServiceOfficeResponse]:
     normalized = service.strip()
-    offices = (
-        db.query(ServiceOffice)
-        .filter(
-            or_(
-                func.lower(ServiceOffice.service_name) == normalized.lower(),
-                func.lower(ServiceOffice.service_id) == normalized.lower(),
-                func.lower(ServiceOffice.office_name) == normalized.lower(),
-                func.lower(ServiceOffice.address) == normalized.lower(),
+    # If the provided service looks like an integer id, match by FK id first
+    try:
+        svc_id = int(normalized)
+    except Exception:
+        svc_id = None
+    if svc_id is not None:
+        offices = db.query(ServiceOffice).filter(ServiceOffice.service_id == svc_id).order_by(ServiceOffice.id.asc()).all()
+    else:
+        offices = (
+            db.query(ServiceOffice)
+            .filter(
+                or_(
+                    func.lower(ServiceOffice.service_name) == normalized.lower(),
+                    func.lower(ServiceOffice.office_name) == normalized.lower(),
+                    func.lower(ServiceOffice.address) == normalized.lower(),
+                )
             )
+            .order_by(ServiceOffice.id.asc())
+            .all()
         )
-        .order_by(ServiceOffice.id.asc())
-        .all()
-    )
     return [to_response(o) for o in offices]
 
 
 def get_service_location_by_identifier(db: Session, institution: str) -> ServiceOffice | None:
     normalized = institution.strip()
+    try:
+        svc_id = int(normalized)
+    except Exception:
+        svc_id = None
+
+    if svc_id is not None:
+        return db.query(ServiceOffice).filter(ServiceOffice.service_id == svc_id).first()
+
     return (
         db.query(ServiceOffice)
         .filter(
             or_(
                 func.lower(ServiceOffice.service_name) == normalized.lower(),
-                func.lower(ServiceOffice.service_id) == normalized.lower(),
                 func.lower(ServiceOffice.office_name) == normalized.lower(),
                 func.lower(ServiceOffice.address) == normalized.lower(),
             )
@@ -73,8 +87,8 @@ def get_service_location_by_identifier(db: Session, institution: str) -> Service
     )
 
 
-def service_exists_by_service_id(db: Session, service_id: str) -> bool:
-    return db.query(Service).filter(Service.service_id == service_id).first() is not None
+def service_exists_by_service_id(db: Session, service_id: int) -> bool:
+    return db.query(Service).filter(Service.id == service_id).first() is not None
 
 
 def create_service_location(db: Session, payload: ServiceOfficeCreate) -> ServiceOffice:

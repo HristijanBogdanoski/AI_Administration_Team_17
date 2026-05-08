@@ -8,7 +8,7 @@ class Service(Base):
     __tablename__ = "services"
 
     id = Column(Integer, primary_key=True, index=True)
-    service_id = Column(String(100), nullable=False, unique=True, index=True)
+    # removed `service_id` string identifier; use `id` primary key instead
 
     name = Column(String(255), nullable=False, index=True)
     category = Column(

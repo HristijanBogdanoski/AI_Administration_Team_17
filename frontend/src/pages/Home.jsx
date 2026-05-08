@@ -1,6 +1,7 @@
 import React, {useState, useEffect} from 'react';
 import {useNavigate} from 'react-router-dom';
 import '../index.css';
+import Footer from '../components/Footer';
 
 function Home() {
     const [showModal, setShowModal] = useState(false);
@@ -304,7 +305,6 @@ function Home() {
                 <div><p style={{color: "rgb(212, 160, 23)", fontWeight: "700", fontSize: "1.5rem"}}>98%</p><p
                     style={{color: "rgb(147, 197, 253)"}}>Задоволство</p></div>
             </div>
-
 
             {/* --- SERVICES GRID --- */}
             <div className="seventh-container">
