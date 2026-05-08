@@ -31,77 +31,9 @@ export default function Services() {
     const [modalMode, setModalMode] = useState('create');
     const [selectedServiceForCrud, setSelectedServiceForCrud] = useState(null);
     const [crudError, setCrudError] = useState('');
-    const [formData, setFormData] = useState({name: '', category: 'documents', description: '', processing_time_days: 0, location: ''});
-    const [showTemplateModal, setShowTemplateModal] = useState(false);
-    const [templateMode, setTemplateMode] = useState('create');
-    const [templateData, setTemplateData] = useState({service_id: null, title: '', template_body: '', is_active: true});
-    const [currentTemplate, setCurrentTemplate] = useState(null);
-
-    // --- TEMPLATE HANDLERS ---
-    const handleTemplateCrud = (mode) => {
-        setTemplateMode(mode);
-        if (mode === 'create') {
-            setTemplateData({service_id: selectedService?.id || null, title: '', template_body: '', is_active: true});
-        } else if (mode === 'edit' && currentTemplate) {
-            setTemplateData({
-                service_id: currentTemplate.service_id,
-                title: currentTemplate.title,
-                template_body: JSON.stringify(currentTemplate.template_body, null, 2),
-                is_active: currentTemplate.is_active
-            });
-        }
-        setShowTemplateModal(true);
-    };
-
-    const submitTemplate = async () => {
-        const token = localStorage.getItem("token");
-        let url = "http://127.0.0.1:8000/service-document-templates";
-        let method = "POST";
-        
-        if (templateMode === 'edit') {
-            url += `/${templateData.service_id}`;
-            method = "PUT";
-        } else if (templateMode === 'delete') {
-            url += `/${currentTemplate.service_id}`;
-            method = "DELETE";
-        }
-        
-        try {
-            const response = await fetch(url, {
-                method,
-                headers: {"Content-Type": "application/json", "Authorization": `Bearer ${token}`},
-                body: templateMode !== 'delete' ? JSON.stringify({...templateData, template_body: JSON.parse(templateData.template_body)}) : undefined
-            });
-            if (response.ok) {
-                setShowTemplateModal(false);
-                if (templateMode === 'delete') {
-                    setCurrentTemplate(null);
-                } else {
-                    fetchTemplateForService(selectedService.id);
-                }
-            }
-        } catch (err) {
-            console.error('Template error:', err);
-        }
-    };
-
-    const fetchTemplateForService = async (serviceId) => {
-        const token = localStorage.getItem("token");
-        try {
-            const response = await fetch(`http://127.0.0.1:8000/service-document-templates/${serviceId}`, {
-                headers: {"Authorization": `Bearer ${token}`}
-            });
-            if (response.ok) {
-                const template = await response.json();
-                setCurrentTemplate(template);
-            } else {
-                setCurrentTemplate(null);
-            }
-        } catch (err) {
-            setCurrentTemplate(null);
-        }
-    };
-
+    const [formData, setFormData] = useState({service_id: '', name: '', category: 'documents', description: '', processing_time_days: 0, location: ''});
+    
+    
     const handleCrud = async (mode, service = null) => {
         setModalMode(mode);
         setSelectedServiceForCrud(service);
@@ -283,12 +215,7 @@ export default function Services() {
         if (filtered.length === 0) setSelectedService(null);
     }, [filtered, selectedService]);
 
-    useEffect(() => {
-        if (selectedService && isLoggedIn) {
-            fetchTemplateForService(selectedService.id);
-        }
-    }, [selectedService, isLoggedIn]);
-
+    
     return (
         <div style={{backgroundColor: "#f8fafc", minHeight: "100vh"}}>
             {/* NAVBAR REMOVED - Managed by App.js wrapper */}
@@ -478,7 +405,6 @@ export default function Services() {
                                 </div>
 
                                 
-
                                     {/* TWO BUTTONS AT THE BOTTOM */}
                                 <div style={{marginTop: "auto", display: "flex", flexDirection: "column", gap: 12}}>
                                     <div style={{display: 'flex', gap: 8, marginBottom: 8}}>
@@ -629,9 +555,93 @@ export default function Services() {
                 </div>
             )}
 
-            <Footer />
+            {/* --- EXACT FOOTER FROM FAQ PAGE --- */}
+            <footer style={{background: '#0f2044', padding: '48px 60px 24px', fontFamily: "'Sora', sans-serif"}}>
+                <div style={{maxWidth: 1100, margin: '0 auto'}}>
+                    <div style={{
+                        display: 'grid',
+                        gridTemplateColumns: '2fr 1fr 1fr',
+                        gap: 48,
+                        paddingBottom: 40,
+                        borderBottom: '1px solid rgba(255,255,255,0.08)'
+                    }}>
+                        <div>
+                            <div style={{display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16}}>
+                                <div style={{
+                                    width: 32,
+                                    height: 32,
+                                    borderRadius: 8,
+                                    background: 'rgba(212,160,23,0.2)',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    fontSize: 16
+                                }}>🛡️
+                                </div>
+                                <span style={{color: '#D4A017', fontWeight: 700, fontSize: '1rem'}}>е-Влада</span>
+                            </div>
+                            <p style={{color: 'rgba(255,255,255,0.5)', fontSize: '0.82rem', lineHeight: 1.7}}>
+                                Официјален портал на Владата на Република Северна Македонија за јавни услуги и
+                                информации.
+                            </p>
+                        </div>
+                        <div>
+                            <h4 style={{
+                                color: '#D4A017',
+                                fontSize: '0.82rem',
+                                fontWeight: 700,
+                                letterSpacing: '0.08em',
+                                textTransform: 'uppercase',
+                                marginBottom: 16
+                            }}>Брзи врски</h4>
+                            {[
+                                {name: 'Дома', path: '/'},
+                                {name: 'ЧПП', path: '/faq'},
+                                {name: 'Услуги', path: '/services'},
+                                {name: 'Локација', path: '/'}
+                            ].map(link => (
+                                <div
+                                    key={link.name}
+                                    style={{
+                                        color: 'rgba(255,255,255,0.5)',
+                                        fontSize: '0.82rem',
+                                        padding: '4px 0',
+                                        cursor: 'pointer'
+                                    }}
+                                    onClick={() => navigate(link.path)}
+                                >
+                                    {link.name}
+                                </div>
+                            ))}
+                        </div>
+                        <div>
+                            <h4 style={{
+                                color: '#D4A017',
+                                fontSize: '0.82rem',
+                                fontWeight: 700,
+                                letterSpacing: '0.08em',
+                                textTransform: 'uppercase',
+                                marginBottom: 16
+                            }}>Контакт</h4>
+                            <p style={{color: 'rgba(255,255,255,0.5)', fontSize: '0.82rem', padding: '3px 0'}}>📞 +389 2
+                                3145 100</p>
+                            <p style={{color: 'rgba(255,255,255,0.5)', fontSize: '0.82rem', padding: '3px 0'}}>✉️
+                                info@vlada.gov.mk</p>
+                            <p style={{color: 'rgba(255,255,255,0.5)', fontSize: '0.82rem', padding: '3px 0'}}>📍
+                                Илинденска б.б., Скопје</p>
+                        </div>
+                    </div>
+                    <div style={{
+                        textAlign: 'center',
+                        paddingTop: 24,
+                        color: 'rgba(255,255,255,0.25)',
+                        fontSize: '0.75rem'
+                    }}>
+                        © 2026 Влада на Република Северна Македонија. Сите права се задржани.
+                    </div>
+                </div>
+            </footer>
 
-            
-        </div>
+                    </div>
     );
 }

@@ -385,7 +385,35 @@ function Home() {
                 </div>
             </div>
 
-            <Footer />
+            {/* --- FOOTER --- */}
+            <footer style={{background: '#0f2044', padding: '48px 60px 24px', fontFamily: "'Sora', sans-serif", marginTop: '60px'}}>
+        <div style={{maxWidth: 1100, margin: '0 auto'}}>
+          <div style={{display: 'grid', gridTemplateColumns: '2fr 1fr 1fr', gap: 48, paddingBottom: 40, borderBottom: '1px solid rgba(255,255,255,0.08)'}}>
+            <div>
+              <div style={{display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16}}>
+                <div style={{width: 32, height: 32, borderRadius: 8, background: 'rgba(212,160,23,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16}}>🛡️</div>
+                <span style={{color: '#D4A017', fontWeight: 700, fontSize: '1rem'}}>е-Влада</span>
+              </div>
+              <p style={{color: 'rgba(255,255,255,0.5)', fontSize: '0.82rem', lineHeight: 1.7}}>Официјален портал на Владата на Република Северна Македонија за јавни услуги и информации.</p>
+            </div>
+            <div>
+              <h4 style={{color: '#D4A017', fontSize: '0.82rem', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 16}}>Брзи врски</h4>
+              {[{name: 'Дома', path: '/'}, {name: 'ЧПП', path: '/faq'}, {name: 'Услуги', path: '/services'}, {name: 'Локации', path: '/locations'}].map(link => (
+                <div key={link.name} style={{color: 'rgba(255,255,255,0.5)', fontSize: '0.82rem', padding: '4px 0', cursor: 'pointer'}} onClick={() => navigate(link.path)}>{link.name}</div>
+              ))}
+            </div>
+            <div>
+              <h4 style={{color: '#D4A017', fontSize: '0.82rem', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 16}}>Контакт</h4>
+              <p style={{color: 'rgba(255,255,255,0.5)', fontSize: '0.82rem', padding: '3px 0'}}>📞 +389 2 3145 100</p>
+              <p style={{color: 'rgba(255,255,255,0.5)', fontSize: '0.82rem', padding: '3px 0'}}>✉️ info@vlada.gov.mk</p>
+              <p style={{color: 'rgba(255,255,255,0.5)', fontSize: '0.82rem', padding: '3px 0'}}>📍 Илинденска б.б., Скопје</p>
+            </div>
+          </div>
+          <div style={{textAlign: 'center', paddingTop: 24, color: 'rgba(255,255,255,0.25)', fontSize: '0.75rem'}}>
+            © 2026 Влада на Република Северна Македонија. Сите права се задржани.
+          </div>
+        </div>
+      </footer>
 
             {/* --- CHAT MODAL --- */}
             {showChat && (
