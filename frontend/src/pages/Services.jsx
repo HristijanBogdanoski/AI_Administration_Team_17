@@ -18,6 +18,11 @@ export default function Services() {
 
     // --- AUTHENTICATION STATE ---
     const [isLoggedIn, setIsLoggedIn] = useState(!!localStorage.getItem("token"));
+    const [isAdmin, setIsAdmin] = useState(() => {
+        const token = localStorage.getItem("token");
+        if (!token) return false;
+        try { return JSON.parse(atob(token.split(".")[1])).role === "admin"; } catch { return false; }
+    });
     const [showModal, setShowModal] = useState(false);
     const [authMode, setAuthMode] = useState("login");
     const [authForm, setAuthForm] = useState({email: "", password: "", fullName: ""});
@@ -36,6 +41,8 @@ export default function Services() {
     const [templateMode, setTemplateMode] = useState('create');
     const [templateData, setTemplateData] = useState({service_id: null, title: '', template_body: '', is_active: true});
     const [currentTemplate, setCurrentTemplate] = useState(null);
+    const [autoFillLoading, setAutoFillLoading] = useState(false);
+    const [autoFillError, setAutoFillError] = useState('');
 
     // --- TEMPLATE HANDLERS ---
     const handleTemplateCrud = (mode) => {
@@ -277,6 +284,39 @@ export default function Services() {
         }
     };
 
+    const handleAutoFill = async () => {
+        if (!selectedService?.id) return;
+        const token = localStorage.getItem("token");
+        if (!token) return;
+        setAutoFillLoading(true);
+        setAutoFillError('');
+        try {
+            const response = await fetch(
+                `http://127.0.0.1:8000/service-document-templates/${selectedService.id}/auto-fill?format=${encodeURIComponent(selectedFormat)}`,
+                {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+                    body: JSON.stringify({ selected_fields: [] }),
+                }
+            );
+            if (!response.ok) {
+                if (response.status === 404) {
+                    setAutoFillError("Оваа услуга нема достапен документ за пополнување.");
+                } else {
+                    setAutoFillError("Неуспешно автоматско пополнување. Обидете се повторно.");
+                }
+                return;
+            }
+            const blob = await response.blob();
+            const ext = selectedFormat === 'pdf' ? 'pdf' : selectedFormat === 'docx' ? 'docx' : 'txt';
+            downloadBlob(blob, `${selectedService.id}-application-form-filled.${ext}`);
+        } catch {
+            setAutoFillError("Грешка при автоматско пополнување.");
+        } finally {
+            setAutoFillLoading(false);
+        }
+    };
+
     useEffect(() => {
         if (!selectedService && filtered.length > 0) setSelectedService(filtered[0]);
         if (selectedService && filtered.length > 0 && !filtered.some((s) => s.id === selectedService.id)) setSelectedService(filtered[0]);
@@ -344,7 +384,7 @@ export default function Services() {
                         ))}
                     </div>
 
-                    {isLoggedIn && (
+                    {isAdmin && (
                         <div style={{display: "flex", justifyContent: "center", marginTop: "20px"}}>
                             <button onClick={() => handleCrud('create')} style={{backgroundColor: "#1B3A6B", color: "#fff", border: "none", padding: "12px 24px", borderRadius: "25px", cursor: "pointer", fontWeight: "600", fontSize: "0.9rem", transition: "all 0.2s ease"}}>+ Додади Услуга</button>
                         </div>
@@ -399,7 +439,7 @@ export default function Services() {
                                             color: s.color,
                                             fontWeight: "700"
                                         }}>{s.tag}</span>
-                                        {isLoggedIn && (
+                                        {isAdmin && (
                                             <div style={{display: "flex", gap: "3px"}}>
                                                 <button onClick={(e) => {e.stopPropagation(); handleCrud('edit', s);}} style={{backgroundColor: "#3b82f6", color: "#fff", border: "none", padding: "3px 6px", borderRadius: "3px", cursor: "pointer", fontSize: "0.7rem"}}>Измени</button>
                                                 <button onClick={(e) => {e.stopPropagation(); handleCrud('delete', s);}} style={{backgroundColor: "#ef4444", color: "#fff", border: "none", padding: "3px 6px", borderRadius: "3px", cursor: "pointer", fontSize: "0.7rem"}}>Избриши</button>
@@ -505,11 +545,40 @@ export default function Services() {
                                         onMouseOver={(e) => e.target.style.opacity = "0.85"}
                                         onMouseOut={(e) => e.target.style.opacity = "1"}
                                     >
-                                        Преземи документ
+                                        Преземи празен документ
                                     </button>
-                                    <p style={{margin: 0, fontSize: "0.86rem", color: "#64748b", lineHeight: 1.55}}>
-                                        Документот можете да го пополните и автоматски во АИ Чет. Таму изберете „Прикачи документ за пополнување“.
-                                    </p>
+                                    {isLoggedIn ? (
+                                        <>
+                                            <button
+                                                onClick={handleAutoFill}
+                                                disabled={autoFillLoading}
+                                                style={{
+                                                    background: autoFillLoading ? "#94a3b8" : "linear-gradient(135deg, #1B3A6B 0%, #2563eb 100%)",
+                                                    color: "#fff",
+                                                    border: "none",
+                                                    padding: "14px",
+                                                    borderRadius: "10px",
+                                                    cursor: autoFillLoading ? "not-allowed" : "pointer",
+                                                    fontWeight: "600",
+                                                    fontSize: "1rem",
+                                                    transition: "opacity 0.2s ease, background 0.2s",
+                                                }}
+                                                onMouseOver={(e) => { if (!autoFillLoading) e.currentTarget.style.opacity = "0.85"; }}
+                                                onMouseOut={(e) => { e.currentTarget.style.opacity = "1"; }}
+                                            >
+                                                {autoFillLoading ? "⏳ Се генерира..." : "✦ Автоматски пополни"}
+                                            </button>
+                                            {autoFillError && (
+                                                <p style={{margin: 0, fontSize: "0.82rem", color: "#CE2028", lineHeight: 1.5, background: "#FFF1F2", border: "1px solid #fecdd3", borderRadius: 8, padding: "8px 12px"}}>
+                                                    {autoFillError}
+                                                </p>
+                                            )}
+                                        </>
+                                    ) : (
+                                        <p style={{margin: 0, fontSize: "0.86rem", color: "#64748b", lineHeight: 1.55}}>
+                                            Најавете се за автоматско пополнување на документот со Вашите податоци.
+                                        </p>
+                                    )}
                                     {/* Secondary Button - Location */}
                                     <button
                                         onClick={async () => {
@@ -574,46 +643,58 @@ export default function Services() {
                                 </div>
                             </div>
                         ) : (
-                            <form onSubmit={(e) => {e.preventDefault(); submitCrud();}} style={{display: "flex", flexDirection: "column", gap: "15px"}}>
-                                <input 
-                                    type="text" 
-                                    placeholder="Име на Услуга *" 
-                                    value={formData.name} 
-                                    onChange={(e) => setFormData({...formData, name: e.target.value})} 
-                                    style={{padding: "10px", border: "1px solid #d1d5db", borderRadius: "6px"}} 
-                                    required 
-                                />
-                                <select value={formData.category} onChange={(e) => setFormData({...formData, category: e.target.value})} style={{padding: "10px", border: "1px solid #d1d5db", borderRadius: "6px"}}>
-                                    <option value="documents">Документи</option>
-                                    <option value="taxes">Даноци</option>
-                                    <option value="social">Социјални</option>
-                                    <option value="business">Деловни</option>
-                                    <option value="education">Услуги</option>
-                                    <option value="utilities">Институции</option>
-                                </select>
-                                <textarea 
-                                    placeholder="Опис" 
-                                    value={formData.description || ''} 
-                                    onChange={(e) => {
-                                        console.log('Description changed from:', formData.description, 'to:', e.target.value);
-                                        setFormData({...formData, description: e.target.value});
-                                    }} 
-                                    style={{padding: "10px", border: "1px solid #d1d5db", borderRadius: "6px", minHeight: "60px"}}
-                                />
-                                <textarea 
-                                    placeholder="Детали (еден по ред)" 
-                                    value={formData.details ? formData.details.join('\n') : ''} 
-                                    onChange={(e) => setFormData({...formData, details: e.target.value.split('\n')})} 
-                                    onBlur={(e) => setFormData({...formData, details: e.target.value.split('\n').filter(d => d.trim())})}
-                                    style={{padding: "10px", border: "1px solid #d1d5db", borderRadius: "6px", minHeight: "80px"}}
-                                />
-                                <input 
-    type="text" 
-    placeholder={formData.processing_time_days === 0 ? "Работни Дена" : "Изберете работни денови (пр. 3 работни дена)"} 
-    value={formData.processing_time_days === 0 ? "" : formData.processing_time_days} 
-    onChange={(e) => setFormData({...formData, processing_time_days: e.target.value})} 
-    style={{padding: "10px", border: "1px solid #d1d5db", borderRadius: "6px"}} 
-/>
+                            <form onSubmit={(e) => {e.preventDefault(); submitCrud();}} style={{display: "flex", flexDirection: "column", gap: "12px"}}>
+                                <div style={{display: "flex", flexDirection: "column", gap: "4px"}}>
+                                    <label style={{fontSize: "0.8rem", fontWeight: 600, color: "#374151"}}>Име на услуга *</label>
+                                    <input
+                                        type="text"
+                                        placeholder="пр. Барање за пасош"
+                                        value={formData.name}
+                                        onChange={(e) => setFormData({...formData, name: e.target.value})}
+                                        style={{padding: "10px", border: "1px solid #d1d5db", borderRadius: "6px"}}
+                                        required
+                                    />
+                                </div>
+                                <div style={{display: "flex", flexDirection: "column", gap: "4px"}}>
+                                    <label style={{fontSize: "0.8rem", fontWeight: 600, color: "#374151"}}>Категорија</label>
+                                    <select value={formData.category} onChange={(e) => setFormData({...formData, category: e.target.value})} style={{padding: "10px", border: "1px solid #d1d5db", borderRadius: "6px"}}>
+                                        <option value="documents">Документи</option>
+                                        <option value="taxes">Даноци</option>
+                                        <option value="social">Социјални</option>
+                                        <option value="business">Деловни</option>
+                                        <option value="education">Услуги</option>
+                                        <option value="utilities">Институции</option>
+                                    </select>
+                                </div>
+                                <div style={{display: "flex", flexDirection: "column", gap: "4px"}}>
+                                    <label style={{fontSize: "0.8rem", fontWeight: 600, color: "#374151"}}>Опис</label>
+                                    <textarea
+                                        placeholder="Краток опис на услугата..."
+                                        value={formData.description || ''}
+                                        onChange={(e) => setFormData({...formData, description: e.target.value})}
+                                        style={{padding: "10px", border: "1px solid #d1d5db", borderRadius: "6px", minHeight: "60px"}}
+                                    />
+                                </div>
+                                <div style={{display: "flex", flexDirection: "column", gap: "4px"}}>
+                                    <label style={{fontSize: "0.8rem", fontWeight: 600, color: "#374151"}}>Детали <span style={{fontWeight: 400, color: "#9ca3af"}}>(еден по ред)</span></label>
+                                    <textarea
+                                        placeholder="пр. Лична карта&#10;Уплатница&#10;Фотографија"
+                                        value={formData.details ? formData.details.join('\n') : ''}
+                                        onChange={(e) => setFormData({...formData, details: e.target.value.split('\n')})}
+                                        onBlur={(e) => setFormData({...formData, details: e.target.value.split('\n').filter(d => d.trim())})}
+                                        style={{padding: "10px", border: "1px solid #d1d5db", borderRadius: "6px", minHeight: "80px"}}
+                                    />
+                                </div>
+                                <div style={{display: "flex", flexDirection: "column", gap: "4px"}}>
+                                    <label style={{fontSize: "0.8rem", fontWeight: 600, color: "#374151"}}>Рок на обработка <span style={{fontWeight: 400, color: "#9ca3af"}}>(работни дена, 0 = веднаш)</span></label>
+                                    <input
+                                        type="text"
+                                        placeholder="пр. 3"
+                                        value={formData.processing_time_days === 0 ? "" : formData.processing_time_days}
+                                        onChange={(e) => setFormData({...formData, processing_time_days: e.target.value})}
+                                        style={{padding: "10px", border: "1px solid #d1d5db", borderRadius: "6px"}}
+                                    />
+                                </div>
                                 {crudError && (
                                     <div style={{padding: "8px 12px", backgroundColor: "#fef2f2", border: "1px solid #fecaca", borderRadius: "6px", color: "#dc2626", fontSize: "0.85rem"}}>
                                         {crudError}

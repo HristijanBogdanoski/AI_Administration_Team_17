@@ -124,7 +124,7 @@ function ChatWidget({ onExpand }) {
 }
 
 // ─── FAQ Accordion Item ────────────────────────────────────────────────
-function FaqItem({ q, a }) {
+function FaqItem({ q, a, isAdmin, onEdit, onDelete }) {
   const [open, setOpen] = useState(false);
   return (
     <div style={{
@@ -141,12 +141,26 @@ function FaqItem({ q, a }) {
         }}
       >
         <span style={{ fontWeight: 600, fontSize: '0.92rem', color: '#1e293b', lineHeight: 1.4 }}>{q}</span>
-        <span style={{
-          width: 28, height: 28, background: open ? '#1B3A6B' : '#EFF6FF',
-          borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: '1rem', color: open ? '#fff' : '#1B3A6B', flexShrink: 0,
-          transition: 'all 0.2s', transform: open ? 'rotate(45deg)' : 'none'
-        }}>+</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+          {isAdmin && (
+            <>
+              <span
+                onClick={e => { e.stopPropagation(); onEdit(); }}
+                style={{ background: '#3b82f6', color: '#fff', border: 'none', padding: '3px 8px', borderRadius: 5, fontSize: '0.7rem', fontWeight: 600, cursor: 'pointer' }}
+              >Измени</span>
+              <span
+                onClick={e => { e.stopPropagation(); onDelete(); }}
+                style={{ background: '#ef4444', color: '#fff', border: 'none', padding: '3px 8px', borderRadius: 5, fontSize: '0.7rem', fontWeight: 600, cursor: 'pointer' }}
+              >Избриши</span>
+            </>
+          )}
+          <span style={{
+            width: 28, height: 28, background: open ? '#1B3A6B' : '#EFF6FF',
+            borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: '1rem', color: open ? '#fff' : '#1B3A6B',
+            transition: 'all 0.2s', transform: open ? 'rotate(45deg)' : 'none'
+          }}>+</span>
+        </div>
       </button>
       {open && (
         <div style={{ padding: '0 20px 18px', color: '#475569', fontSize: '0.87rem', lineHeight: 1.75, borderTop: '1px solid #f0f4ff' }}>
@@ -199,6 +213,8 @@ export default function FAQ() {
   const [newQ, setNewQ] = useState('');
   const [newA, setNewA] = useState('');
   const [newCat, setNewCat] = useState(Object.keys(FAQ_DATA)[0]);
+  const [editItem, setEditItem] = useState(null); // { idx, q, a, cat }
+  const [confirmDeleteIdx, setConfirmDeleteIdx] = useState(null);
 
   // Decode JWT to get role
   const userRole = (() => {
@@ -219,8 +235,32 @@ export default function FAQ() {
     setShowAddModal(false);
   };
 
-  // Build filtered list
-  const allItems = [...Object.entries(FAQ_DATA).flatMap(([cat, items]) => items.map(i => ({ ...i, cat }))), ...extraItems];
+  const handleEditSave = () => {
+    if (!editItem || !editItem.q.trim() || !editItem.a.trim()) return;
+    setAllItemsState(prev => prev.map((item, i) => i === editItem.idx ? { ...item, q: editItem.q, a: editItem.a, cat: editItem.cat } : item));
+    setEditItem(null);
+  };
+
+  const handleDeleteConfirm = () => {
+    if (confirmDeleteIdx === null) return;
+    setAllItemsState(prev => prev.filter((_, i) => i !== confirmDeleteIdx));
+    setConfirmDeleteIdx(null);
+  };
+
+  // Build full mutable list
+  const staticItems = Object.entries(FAQ_DATA).flatMap(([cat, items]) => items.map(i => ({ ...i, cat })));
+  const [allItemsState, setAllItemsState] = useState(() => [...staticItems, ...extraItems]);
+
+  // Keep allItemsState in sync when extraItems changes via add
+  const prevExtraLen = React.useRef(extraItems.length);
+  React.useEffect(() => {
+    if (extraItems.length > prevExtraLen.current) {
+      setAllItemsState(prev => [...prev, extraItems[extraItems.length - 1]]);
+    }
+    prevExtraLen.current = extraItems.length;
+  }, [extraItems]);
+
+  const allItems = allItemsState;
   const filtered = allItems.filter(item => {
     const matchCat = activeCategory === 'Сите' || item.cat === activeCategory;
     const matchSearch = !search || item.q.toLowerCase().includes(search.toLowerCase()) || item.a.toLowerCase().includes(search.toLowerCase());
@@ -360,7 +400,16 @@ export default function FAQ() {
                 </div>
               )}
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                {items.map((item, i) => <FaqItem key={i} q={item.q} a={item.a} />)}
+                {items.map((item, i) => (
+                  <FaqItem
+                    key={i}
+                    q={item.q}
+                    a={item.a}
+                    isAdmin={userRole === 'admin'}
+                    onEdit={() => setEditItem({ idx: allItemsState.indexOf(item), q: item.q, a: item.a, cat: item.cat })}
+                    onDelete={() => setConfirmDeleteIdx(allItemsState.indexOf(item))}
+                  />
+                ))}
               </div>
             </div>
           ))
@@ -381,14 +430,52 @@ export default function FAQ() {
               onClick={() => navigate('/chat')}
               style={{ background: '#D4A017', color: '#0f2044', border: 'none', padding: '11px 24px', borderRadius: 10, fontWeight: 700, cursor: 'pointer', fontSize: '0.88rem', fontFamily: "'Sora', sans-serif" }}
             >АИ Чет</button>
-            <button style={{ background: 'transparent', color: '#fff', border: '1.5px solid rgba(255,255,255,0.3)', padding: '11px 24px', borderRadius: 10, fontWeight: 600, cursor: 'pointer', fontSize: '0.88rem', fontFamily: "'Sora', sans-serif" }}>
-              Јавете се
-            </button>
+            <button
+              onClick={() => window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' })}
+              style={{ background: 'transparent', color: '#fff', border: '1.5px solid rgba(255,255,255,0.3)', padding: '11px 24px', borderRadius: 10, fontWeight: 600, cursor: 'pointer', fontSize: '0.88rem', fontFamily: "'Sora', sans-serif" }}
+            >Јавете се</button>
           </div>
         </div>
       </div>
 
       <Footer />
+
+      {/* Edit Modal */}
+      {editItem && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          onClick={() => setEditItem(null)}>
+          <div style={{ background: '#fff', borderRadius: 16, padding: 32, width: '100%', maxWidth: 500 }} onClick={e => e.stopPropagation()}>
+            <h3 style={{ margin: '0 0 20px', color: '#1e293b', fontSize: '1.1rem', fontWeight: 700 }}>Измени прашање</h3>
+            <label style={{ display: 'block', fontSize: '0.82rem', color: '#475569', marginBottom: 6 }}>Категорија</label>
+            <select value={editItem.cat} onChange={e => setEditItem(p => ({ ...p, cat: e.target.value }))} style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1.5px solid #e2e8f0', fontSize: '0.88rem', marginBottom: 16, outline: 'none', background: '#f8fafc' }}>
+              {Object.keys(FAQ_DATA).map(c => <option key={c} value={c}>{c}</option>)}
+            </select>
+            <label style={{ display: 'block', fontSize: '0.82rem', color: '#475569', marginBottom: 6 }}>Прашање</label>
+            <input value={editItem.q} onChange={e => setEditItem(p => ({ ...p, q: e.target.value }))} style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1.5px solid #e2e8f0', fontSize: '0.88rem', marginBottom: 16, outline: 'none', background: '#f8fafc', boxSizing: 'border-box' }} />
+            <label style={{ display: 'block', fontSize: '0.82rem', color: '#475569', marginBottom: 6 }}>Одговор</label>
+            <textarea value={editItem.a} onChange={e => setEditItem(p => ({ ...p, a: e.target.value }))} rows={4} style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1.5px solid #e2e8f0', fontSize: '0.88rem', marginBottom: 20, outline: 'none', background: '#f8fafc', boxSizing: 'border-box', resize: 'vertical', fontFamily: 'inherit' }} />
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+              <button onClick={() => setEditItem(null)} style={{ padding: '9px 20px', borderRadius: 8, border: '1.5px solid #e2e8f0', background: 'transparent', color: '#475569', cursor: 'pointer', fontSize: '0.88rem' }}>Откажи</button>
+              <button onClick={handleEditSave} style={{ padding: '9px 20px', borderRadius: 8, border: 'none', background: '#1B3A6B', color: '#fff', cursor: 'pointer', fontSize: '0.88rem', fontWeight: 700 }}>Зачувај</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirm Modal */}
+      {confirmDeleteIdx !== null && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          onClick={() => setConfirmDeleteIdx(null)}>
+          <div style={{ background: '#fff', borderRadius: 16, padding: 32, width: '100%', maxWidth: 400 }} onClick={e => e.stopPropagation()}>
+            <h3 style={{ margin: '0 0 12px', color: '#dc2626', fontSize: '1.1rem', fontWeight: 700 }}>Избриши прашање</h3>
+            <p style={{ color: '#6b7280', marginBottom: 24 }}>Дали сте сигурни дека сакате да го избришете ова прашање?</p>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button onClick={handleDeleteConfirm} style={{ flex: 1, padding: 10, backgroundColor: '#dc2626', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer', fontWeight: 600 }}>Избриши</button>
+              <button onClick={() => setConfirmDeleteIdx(null)} style={{ flex: 1, padding: 10, backgroundColor: '#6b7280', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer' }}>Откажи</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Floating chat widget */}
       <ChatWidget onExpand={() => navigate('/chat')} />

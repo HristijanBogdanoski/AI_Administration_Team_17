@@ -411,17 +411,20 @@
                                                 <label style={{ display: 'block', fontSize: '0.875rem', color: '#374151', marginBottom: 6 }}>
                                                     Пол (опционално)
                                                 </label>
-                                                <input
-                                                    type="text"
+                                                <select
                                                     value={registerForm.gender}
                                                     onChange={(e) => setRegisterForm({ ...registerForm, gender: e.target.value })}
-                                                    placeholder="Машки / Женски / ..."
                                                     style={{
                                                         width: '100%', padding: '12px 14px', borderRadius: 10,
                                                         border: '1px solid #e2e8f0', background: '#F8FAFC',
-                                                        fontSize: '0.875rem', outline: 'none', boxSizing: 'border-box'
+                                                        fontSize: '0.875rem', outline: 'none', boxSizing: 'border-box',
+                                                        cursor: 'pointer'
                                                     }}
-                                                />
+                                                >
+                                                    <option value="">—</option>
+                                                    <option value="Машки">Машки</option>
+                                                    <option value="Женски">Женски</option>
+                                                </select>
                                             </div>
                                         </div>
 

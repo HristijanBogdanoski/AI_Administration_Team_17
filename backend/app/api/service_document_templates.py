@@ -22,6 +22,8 @@ from app.services.service_document_template_service import (
     upsert_template,
     text_to_pdf_bytes,
     text_to_docx_bytes,
+    template_body_to_pdf_bytes,
+    template_body_to_docx_bytes,
 )
 from app.core.security import get_current_user
 from app.models.user import User
@@ -61,18 +63,17 @@ def download_blank_template(service_id: int, format: str = "txt", db: Session = 
     template = get_template_by_service_id(db, service_id)
     if template is None:
         raise HTTPException(status_code=404, detail="Template not found")
-    document_text = render_template_document(template.template_body)
     fmt = format.lower()
     if fmt == "pdf":
-        content = text_to_pdf_bytes(document_text)
+        content = template_body_to_pdf_bytes(template.template_body)
         filename = f"{service_id}-application-form.pdf"
         media_type = "application/pdf"
     elif fmt in ("docx", "word"):
-        content = text_to_docx_bytes(document_text)
+        content = template_body_to_docx_bytes(template.template_body)
         filename = f"{service_id}-application-form.docx"
         media_type = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
     else:
-        content = document_text
+        content = render_template_document(template.template_body)
         filename = f"{service_id}-application-form.txt"
         media_type = "text/plain; charset=utf-8"
 
@@ -100,18 +101,17 @@ def auto_fill_template(
         current_user,
         payload.selected_fields,
     )
-    document_text = render_template_document(filled_body)
     fmt = format.lower()
     if fmt == "pdf":
-        content = text_to_pdf_bytes(document_text)
+        content = template_body_to_pdf_bytes(filled_body)
         filename = f"{service_id}-application-form-filled.pdf"
         media_type = "application/pdf"
     elif fmt in ("docx", "word"):
-        content = text_to_docx_bytes(document_text)
+        content = template_body_to_docx_bytes(filled_body)
         filename = f"{service_id}-application-form-filled.docx"
         media_type = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
     else:
-        content = document_text
+        content = render_template_document(filled_body)
         filename = f"{service_id}-application-form-filled.txt"
         media_type = "text/plain; charset=utf-8"
 
@@ -152,18 +152,17 @@ async def upload_and_fill_template(
         )
 
     filled_body = apply_user_values_to_template(template.template_body, current_user, selected_fields_list)
-    filled_text = render_template_document(filled_body)
     fmt = output_format.lower()
     if fmt == "pdf":
-        content = text_to_pdf_bytes(filled_text)
+        content = template_body_to_pdf_bytes(filled_body)
         filename = f"{template.service_id}-application-form-filled.pdf"
         media_type = "application/pdf"
     elif fmt in ("docx", "word"):
-        content = text_to_docx_bytes(filled_text)
+        content = template_body_to_docx_bytes(filled_body)
         filename = f"{template.service_id}-application-form-filled.docx"
         media_type = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
     else:
-        content = filled_text
+        content = render_template_document(filled_body)
         filename = f"{template.service_id}-application-form-filled.txt"
         media_type = "text/plain; charset=utf-8"
 

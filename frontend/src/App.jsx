@@ -7,6 +7,7 @@ import FAQ from './pages/FAQ';
 import Locations from './pages/Locations';
 import Services from "./pages/Services";
 import Profile from './pages/Profile';
+import AdminUsers from './pages/AdminUsers';
 
 function App() {
   return (
@@ -20,6 +21,7 @@ function App() {
           <Route path="/chat" element={<AiChat />} />
           <Route path="/services" element={<Services />} />
           <Route path="/profile" element={<Profile />} />
+          <Route path="/admin/users" element={<AdminUsers />} />
         </Route>
       </Routes>
     </Router>

@@ -25,6 +25,11 @@ const LocationsPage = () => {
     notes: ''
   });
   const [isLoggedIn, setIsLoggedIn] = useState(!!localStorage.getItem("token"));
+  const [isAdmin] = useState(() => {
+    const token = localStorage.getItem("token");
+    if (!token) return false;
+    try { return JSON.parse(atob(token.split(".")[1])).role === "admin"; } catch { return false; }
+  });
   const [isGeocoding, setIsGeocoding] = useState(false);
   const [geocodingError, setGeocodingError] = useState('');
   const [availableServices, setAvailableServices] = useState([]);
@@ -238,7 +243,7 @@ const LocationsPage = () => {
           <input type="text" className="search-input" placeholder="Пребарајте услуга, град или име..." onChange={(e) => setSearchTerm(e.target.value)} />
         </div>
 
-        {isLoggedIn && (
+        {isAdmin && (
           <div style={{display: "flex", justifyContent: "center", marginTop: "15px"}}>
             <button onClick={() => handleCrud('create')} style={{ backgroundColor: "#1a3a5f", color: "#fff", border: "none", padding: "10px 20px", borderRadius: "20px", cursor: "pointer", fontWeight: "600", position:"relative", top:"-20px" }}>
               + Додади Локација
@@ -252,7 +257,7 @@ const LocationsPage = () => {
               <div key={loc.id} className={`list-card p-4 shadow-sm ${selectedLoc?.id === loc.id ? 'active' : ''}`} onClick={() => setSelectedLoc(loc)} >
                 <div style={{display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "8px"}}>
                   <div className="office-name-text">{loc.office_name}</div>
-                  {isLoggedIn && (
+                  {isAdmin && (
                     <div style={{display: "flex", gap: "3px"}}>
                       <button onClick={(e) => {e.stopPropagation(); handleCrud('edit', loc);}} style={{ backgroundColor: "#3b82f6", color: "#fff", border: "none", padding: "2px 6px", borderRadius: "3px", cursor: "pointer", fontSize: "0.7rem" }}>Измени</button>
                       <button onClick={(e) => {e.stopPropagation(); handleCrud('delete', loc);}} style={{ backgroundColor: "#ef4444", color: "#fff", border: "none", padding: "2px 6px", borderRadius: "3px", cursor: "pointer", fontSize: "0.7rem" }}>Избриши</button>
