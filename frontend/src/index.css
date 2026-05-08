@@ -191,6 +191,14 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
+  height: 100%;
+  gap: 4px;
+}
+
+.fifth-container p {
+  margin: 0;
+  line-height: 1.1;
 }
 
 .la-buttona{

@@ -82,18 +82,16 @@ SERVICE_META = {
 def seed() -> None:
     db = SessionLocal()
     try:
-        existing_by_service_id = {row.service_id: row for row in db.query(Service).all()}
-        existing_templates_by_service_id = {
-            row.service_id: row for row in db.query(ServiceDocumentTemplate).all()
-        }
+        existing_by_name = {row.name: row for row in db.query(Service).all()}
+        existing_templates_by_service_id = {row.service_id: row for row in db.query(ServiceDocumentTemplate).all()}
         created = 0
         updated = 0
         template_created = 0
         template_updated = 0
 
-        for service_id, meta in SERVICE_META.items():
-            if service_id in existing_by_service_id:
-                service = existing_by_service_id[service_id]
+        for service_slug, meta in SERVICE_META.items():
+            if meta["name"] in existing_by_name:
+                service = existing_by_name[meta["name"]]
                 changed = False
                 for key, value in meta.items():
                     if getattr(service, key) != value:
@@ -101,17 +99,18 @@ def seed() -> None:
                         changed = True
                 updated += int(changed)
             else:
-                service = Service(service_id=service_id, **meta)
+                service = Service(**meta)
                 db.add(service)
+                db.flush()
                 created += 1
 
             template_title = f"{meta['name']} - формулар за апликација"
             template_body = build_default_template_body(meta["name"])
-            template = existing_templates_by_service_id.get(service_id)
+            template = existing_templates_by_service_id.get(service.id)
             if template is None:
                 db.add(
                     ServiceDocumentTemplate(
-                        service_id=service_id,
+                        service_id=service.id,
                         title=template_title,
                         template_type="json",
                         template_body=template_body,

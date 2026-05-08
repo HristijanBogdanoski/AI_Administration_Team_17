@@ -7,9 +7,10 @@ class ServiceDocumentTemplate(Base):
     __tablename__ = "service_document_templates"
 
     id = Column(Integer, primary_key=True, index=True)
+    # reference the service by numeric primary key `services.id`
     service_id = Column(
-        String(100),
-        ForeignKey("services.service_id", ondelete="CASCADE"),
+        Integer,
+        ForeignKey("services.id", ondelete="CASCADE"),
         nullable=False,
         unique=True,
         index=True,

@@ -113,7 +113,7 @@ def create_service_location(
     if not service_exists_by_service_id(db, payload.service_id):
         raise HTTPException(
             status_code=404,
-            detail=f"Service with service_id '{payload.service_id}' does not exist.",
+            detail=f"Service with id '{payload.service_id}' does not exist.",
         )
     office = create_location(db, payload)
     return to_response(office)

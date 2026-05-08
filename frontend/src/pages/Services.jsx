@@ -1,6 +1,7 @@
 import React, {useEffect, useState} from "react";
 import {useNavigate} from "react-router-dom";
 import '../index.css';
+import Footer from '../components/Footer';
 
 const CATEGORY_TO_TAG = {documents: "Документи", taxes: "Даноци", social: "Социјални", business: "Деловни", education: "Услуги", utilities: "Институции"};
 const CATEGORY_TO_COLOR = {documents: "#1B3A6B", taxes: "#CE2028", social: "rgb(212,160,23)", business: "rgb(22,101,52)", education: "#8B5CF6", utilities: "rgb(3,105,161)"};
@@ -30,17 +31,17 @@ export default function Services() {
     const [modalMode, setModalMode] = useState('create');
     const [selectedServiceForCrud, setSelectedServiceForCrud] = useState(null);
     const [crudError, setCrudError] = useState('');
-    const [formData, setFormData] = useState({service_id: '', name: '', category: 'documents', description: '', processing_time_days: 0, location: ''});
+    const [formData, setFormData] = useState({name: '', category: 'documents', description: '', processing_time_days: 0, location: ''});
     const [showTemplateModal, setShowTemplateModal] = useState(false);
     const [templateMode, setTemplateMode] = useState('create');
-    const [templateData, setTemplateData] = useState({service_id: '', title: '', template_body: '', is_active: true});
+    const [templateData, setTemplateData] = useState({service_id: null, title: '', template_body: '', is_active: true});
     const [currentTemplate, setCurrentTemplate] = useState(null);
 
     // --- TEMPLATE HANDLERS ---
     const handleTemplateCrud = (mode) => {
         setTemplateMode(mode);
         if (mode === 'create') {
-            setTemplateData({service_id: selectedService?.service_id || '', title: '', template_body: '', is_active: true});
+            setTemplateData({service_id: selectedService?.id || null, title: '', template_body: '', is_active: true});
         } else if (mode === 'edit' && currentTemplate) {
             setTemplateData({
                 service_id: currentTemplate.service_id,
@@ -76,7 +77,7 @@ export default function Services() {
                 if (templateMode === 'delete') {
                     setCurrentTemplate(null);
                 } else {
-                    fetchTemplateForService(selectedService.service_id);
+                    fetchTemplateForService(selectedService.id);
                 }
             }
         } catch (err) {
@@ -106,11 +107,10 @@ export default function Services() {
         setSelectedServiceForCrud(service);
         setCrudError('');
         if (mode === 'create') {
-            setFormData({service_id: '', name: '', category: 'documents', description: '', processing_time_days: 0, location: '', details: []});
+            setFormData({name: '', category: 'documents', description: '', processing_time_days: 0, location: '', details: []});
         } else if (mode === 'edit' && service) {
             const processingDays = service.time === 'Веднаш' ? 0 : (typeof service.time === 'number' ? service.time : parseInt(service.time) || 0);
             setFormData({
-                service_id: service.service_id,
                 name: service.name,
                 category: Object.keys(CATEGORY_TO_TAG).find(k => CATEGORY_TO_TAG[k] === service.tag) || 'documents',
                 description: service.desc,
@@ -136,9 +136,9 @@ export default function Services() {
         }
 
         if (modalMode === 'create') {
-            const existingService = services.find(s => s.service_id === formData.service_id);
+            const existingService = services.find(s => s.name === formData.name);
             if (existingService) {
-                setCrudError(`Услуга со ID "${formData.service_id}" веќе постои ("${existingService.name}"). Изберете друг ID.`);
+                setCrudError(`Услуга со име "${formData.name}" веќе постои. Изберете друго име.`);
                 return;
             }
         }
@@ -224,7 +224,6 @@ export default function Services() {
                 const data = await res.json();
                 const mapped = data.map((service) => ({
                     id: service.id,
-                    service_id: service.service_id,
                     name: service.name,
                     desc: service.description || "Нема опис за оваа услуга.",
                     tag: CATEGORY_TO_TAG[service.category] || "Услуги",
@@ -263,16 +262,16 @@ export default function Services() {
     };
 
     const handleDownloadDocument = async () => {
-        if (!selectedService?.service_id) return;
+        if (!selectedService?.id) return;
         try {
-            const response = await fetch(`http://127.0.0.1:8000/service-document-templates/${selectedService.service_id}/download?format=${encodeURIComponent(selectedFormat)}`);
+            const response = await fetch(`http://127.0.0.1:8000/service-document-templates/${selectedService.id}/download?format=${encodeURIComponent(selectedFormat)}`);
             if (!response.ok) {
                 console.error("Неуспешно преземање на документот.");
                 return;
             }
             const blob = await response.blob();
             const ext = selectedFormat === 'pdf' ? 'pdf' : selectedFormat === 'docx' ? 'docx' : 'txt';
-            downloadBlob(blob, `${selectedService.service_id}-application-form.${ext}`);
+            downloadBlob(blob, `${selectedService.id}-application-form.${ext}`);
         } catch {
             console.error("Грешка при преземање на документот.");
         }
@@ -286,7 +285,7 @@ export default function Services() {
 
     useEffect(() => {
         if (selectedService && isLoggedIn) {
-            fetchTemplateForService(selectedService.service_id);
+            fetchTemplateForService(selectedService.id);
         }
     }, [selectedService, isLoggedIn]);
 
@@ -478,26 +477,7 @@ export default function Services() {
                                     <p style={{color: "#94a3b8", fontWeight: 500, margin: 0}}>{selectedService.time}</p>
                                 </div>
 
-                                {/* TEMPLATE ADMIN FOR LOGGED IN USERS */}
-                                    {isLoggedIn && (
-                                        <div style={{marginTop: 12, padding: "10px", backgroundColor: "#f8fafc", borderRadius: "8px", border: "1px solid #e2e8f0"}}>
-                                            <div style={{display: "flex", alignItems: "center", gap: 8, marginBottom: 8}}>
-                                                <div style={{width: 8, height: 8, borderRadius: "50%", backgroundColor: currentTemplate ? "#10b981" : "#ef4444"}}/>
-                                                <span style={{fontSize: "0.85rem", color: "#64748b"}}>
-                                                    {currentTemplate ? "Шаблон постои" : "Нема шаблон"}
-                                                </span>
-                                            </div>
-                                            <div style={{display: "flex", gap: 6}}>
-                                                {!currentTemplate && <button onClick={() => handleTemplateCrud('create')} style={{backgroundColor: "#10b981", color: "#fff", border: "none", padding: "4px 8px", borderRadius: "4px", cursor: "pointer", fontSize: "0.75rem"}}>+ Додади</button>}
-                                                {currentTemplate && (
-                                                    <>
-                                                        <button onClick={() => handleTemplateCrud('edit')} style={{backgroundColor: "#3b82f6", color: "#fff", border: "none", padding: "4px 8px", borderRadius: "4px", cursor: "pointer", fontSize: "0.75rem"}}>Измени</button>
-                                                        <button onClick={() => handleTemplateCrud('delete')} style={{backgroundColor: "#ef4444", color: "#fff", border: "none", padding: "4px 8px", borderRadius: "4px", cursor: "pointer", fontSize: "0.75rem"}}>Избриши</button>
-                                                    </>
-                                                )}
-                                            </div>
-                                        </div>
-                                    )}
+                                
 
                                     {/* TWO BUTTONS AT THE BOTTOM */}
                                 <div style={{marginTop: "auto", display: "flex", flexDirection: "column", gap: 12}}>
@@ -535,7 +515,7 @@ export default function Services() {
                                         onClick={async () => {
                                             navigate('/locations', {
                                                 state: {
-                                                    serviceId: selectedService.service_id || null,
+                                                    serviceId: selectedService.id || null,
                                                     serviceName: selectedService.name || null,
                                                 },
                                             });
@@ -586,7 +566,7 @@ export default function Services() {
                         {modalMode === 'delete' ? (
                             <div>
                                 <p style={{marginBottom: "20px", color: "#6b7280"}}>
-                                    Дали сте сигурни дека сакате да ја избришете услугата "<strong>{selectedServiceForCrud?.name}</strong>" (ID: <strong>{selectedServiceForCrud?.service_id}</strong>)?
+                                    Дали сте сигурни дека сакате да ја избришете услугата "<strong>{selectedServiceForCrud?.name}</strong>"?
                                 </p>
                                 <div style={{display: "flex", gap: "10px"}}>
                                     <button onClick={submitCrud} style={{flex: 1, padding: "10px", backgroundColor: "#dc2626", color: "#fff", border: "none", borderRadius: "6px", cursor: "pointer"}}>Избриши</button>
@@ -595,41 +575,6 @@ export default function Services() {
                             </div>
                         ) : (
                             <form onSubmit={(e) => {e.preventDefault(); submitCrud();}} style={{display: "flex", flexDirection: "column", gap: "15px"}}>
-                                {modalMode === 'edit' && (
-                                    <div style={{marginBottom: "10px"}}>
-                                        <small style={{color: "#6b7280", fontSize: "0.8rem", display: "block", marginBottom: "5px"}}>
-                                            ID на Услуга (не може да се промени):
-                                        </small>
-                                        <input 
-                                            type="text" 
-                                            value={formData.service_id} 
-                                            disabled
-                                            style={{
-                                                padding: "10px", 
-                                                border: "1px solid #d1d5db", 
-                                                borderRadius: "6px",
-                                                backgroundColor: "#f3f4f6",
-                                                color: "#6b7280",
-                                                fontWeight: "bold"
-                                            }} 
-                                            readOnly
-                                        />
-                                    </div>
-                                )}
-                                {modalMode === 'create' && (
-                                    <input 
-                                        type="text" 
-                                        placeholder="ID на Услуга *" 
-                                        value={formData.service_id} 
-                                        onChange={(e) => setFormData({...formData, service_id: e.target.value})}
-                                        style={{
-                                            padding: "10px", 
-                                            border: "1px solid #d1d5db", 
-                                            borderRadius: "6px"
-                                        }} 
-                                        required 
-                                    />
-                                )}
                                 <input 
                                     type="text" 
                                     placeholder="Име на Услуга *" 
@@ -638,11 +583,6 @@ export default function Services() {
                                     style={{padding: "10px", border: "1px solid #d1d5db", borderRadius: "6px"}} 
                                     required 
                                 />
-                                {modalMode === 'create' && formData.service_id && (
-                                    <div style={{fontSize: "0.75rem", color: "#6b7280", marginTop: "-10px", paddingLeft: "4px"}}>
-                                        ID: <strong>{formData.service_id}</strong>
-                                    </div>
-                                )}
                                 <select value={formData.category} onChange={(e) => setFormData({...formData, category: e.target.value})} style={{padding: "10px", border: "1px solid #d1d5db", borderRadius: "6px"}}>
                                     <option value="documents">Документи</option>
                                     <option value="taxes">Даноци</option>
@@ -689,110 +629,9 @@ export default function Services() {
                 </div>
             )}
 
-            {/* --- EXACT FOOTER FROM FAQ PAGE --- */}
-            <footer style={{background: '#0f2044', padding: '48px 60px 24px', fontFamily: "'Sora', sans-serif"}}>
-                <div style={{maxWidth: 1100, margin: '0 auto'}}>
-                    <div style={{
-                        display: 'grid',
-                        gridTemplateColumns: '2fr 1fr 1fr',
-                        gap: 48,
-                        paddingBottom: 40,
-                        borderBottom: '1px solid rgba(255,255,255,0.08)'
-                    }}>
-                        <div>
-                            <div style={{display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16}}>
-                                <div style={{
-                                    width: 32,
-                                    height: 32,
-                                    borderRadius: 8,
-                                    background: 'rgba(212,160,23,0.2)',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    fontSize: 16
-                                }}>🛡️
-                                </div>
-                                <span style={{color: '#D4A017', fontWeight: 700, fontSize: '1rem'}}>е-Влада</span>
-                            </div>
-                            <p style={{color: 'rgba(255,255,255,0.5)', fontSize: '0.82rem', lineHeight: 1.7}}>
-                                Официјален портал на Владата на Република Северна Македонија за јавни услуги и
-                                информации.
-                            </p>
-                        </div>
-                        <div>
-                            <h4 style={{
-                                color: '#D4A017',
-                                fontSize: '0.82rem',
-                                fontWeight: 700,
-                                letterSpacing: '0.08em',
-                                textTransform: 'uppercase',
-                                marginBottom: 16
-                            }}>Брзи врски</h4>
-                            {[
-                                {name: 'Дома', path: '/'},
-                                {name: 'ЧПП', path: '/faq'},
-                                {name: 'Услуги', path: '/services'},
-                                {name: 'Локација', path: '/'}
-                            ].map(link => (
-                                <div
-                                    key={link.name}
-                                    style={{
-                                        color: 'rgba(255,255,255,0.5)',
-                                        fontSize: '0.82rem',
-                                        padding: '4px 0',
-                                        cursor: 'pointer'
-                                    }}
-                                    onClick={() => navigate(link.path)}
-                                >
-                                    {link.name}
-                                </div>
-                            ))}
-                        </div>
-                        <div>
-                            <h4 style={{
-                                color: '#D4A017',
-                                fontSize: '0.82rem',
-                                fontWeight: 700,
-                                letterSpacing: '0.08em',
-                                textTransform: 'uppercase',
-                                marginBottom: 16
-                            }}>Контакт</h4>
-                            <p style={{color: 'rgba(255,255,255,0.5)', fontSize: '0.82rem', padding: '3px 0'}}>📞 +389 2
-                                3145 100</p>
-                            <p style={{color: 'rgba(255,255,255,0.5)', fontSize: '0.82rem', padding: '3px 0'}}>✉️
-                                info@vlada.gov.mk</p>
-                            <p style={{color: 'rgba(255,255,255,0.5)', fontSize: '0.82rem', padding: '3px 0'}}>📍
-                                Илинденска б.б., Скопје</p>
-                        </div>
-                    </div>
-                    <div style={{
-                        textAlign: 'center',
-                        paddingTop: 24,
-                        color: 'rgba(255,255,255,0.25)',
-                        fontSize: '0.75rem'
-                    }}>
-                        © 2026 Влада на Република Северна Македонија. Сите права се задржани.
-                    </div>
-                </div>
-            </footer>
+            <Footer />
 
-            {/* --- TEMPLATE MODAL --- */}
-            {showTemplateModal && (
-                <div style={{position: "fixed", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "rgba(0,0,0,0.6)", display: "flex", justifyContent: "center", alignItems: "center", zIndex: 1000}} onClick={() => setShowTemplateModal(false)}>
-                    <div style={{backgroundColor: "#fff", padding: "30px", borderRadius: "12px", width: "100%", maxWidth: "500px", position: "relative"}} onClick={(e) => e.stopPropagation()}>
-                        <button style={{position: "absolute", top: "10px", right: "10px", border: "none", background: "none", fontSize: "20px", cursor: "pointer"}} onClick={() => setShowTemplateModal(false)}>&times;</button>
-                        <h3 style={{marginBottom: "20px", color: "#1e293b"}}>{templateMode === 'create' ? 'Нов Шаблон' : 'Измени Шаблон'}</h3>
-                        <form onSubmit={(e) => {e.preventDefault(); submitTemplate();}} style={{display: "flex", flexDirection: "column", gap: "15px"}}>
-                            <input type="text" placeholder="Наслов" value={templateData.title} onChange={(e) => setTemplateData({...templateData, title: e.target.value})} style={{padding: "10px", border: "1px solid #d1d5db", borderRadius: "6px"}} required/>
-                            <textarea placeholder="Template Body (JSON)" value={templateData.template_body} onChange={(e) => setTemplateData({...templateData, template_body: e.target.value})} style={{padding: "10px", border: "1px solid #d1d5db", borderRadius: "6px", minHeight: "100px"}} required/>
-                            <div style={{display: "flex", gap: "10px"}}>
-                                <button type="submit" style={{flex: 1, padding: "10px", backgroundColor: "#1B3A6B", color: "#fff", border: "none", borderRadius: "6px", cursor: "pointer"}}>{templateMode === 'create' ? 'Креирај' : 'Ажурирај'}</button>
-                                <button type="button" onClick={() => setShowTemplateModal(false)} style={{flex: 1, padding: "10px", backgroundColor: "#6b7280", color: "#fff", border: "none", borderRadius: "6px", cursor: "pointer"}}>Откажи</button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            )}
+            
         </div>
     );
 }

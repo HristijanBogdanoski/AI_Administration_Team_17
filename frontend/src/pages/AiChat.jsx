@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import Footer from '../components/Footer';
 
 const fallback = {
     'пасош': 'За добивање пасош потребно е да поднесете барање во МВР. Потребни документи: лична карта, уплатница (1.100 ден.), 1 фотографија. Рок: 30 дена, итна постапка: 5 работни дена.',
@@ -56,6 +57,9 @@ function AiChat() {
     const [preparedDocumentUrl, setPreparedDocumentUrl] = useState('');
     const [preparedDocumentName, setPreparedDocumentName] = useState('');
     const [preparedServiceId, setPreparedServiceId] = useState('');
+    const [uploadedFile, setUploadedFile] = useState(null);
+    const [uploadedFileFields, setUploadedFileFields] = useState(null);
+    const [uploadedFileFormat, setUploadedFileFormat] = useState(null);
     const fileInputRef = useRef(null);
     const msgsRef = useRef(null);
 
@@ -73,7 +77,7 @@ function AiChat() {
                 if (response.ok && Array.isArray(data)) {
                     setServices(data);
                     if (data.length > 0) {
-                        setSelectedServiceId(data[0].service_id);
+                        setSelectedServiceId(data[0].id);
                     }
                 }
             } catch {
@@ -83,6 +87,45 @@ function AiChat() {
 
         loadServices();
     }, []);
+
+    useEffect(() => {
+        if (uploadedFile && uploadedFileFields && selectedFormat !== uploadedFileFormat) {
+            // Re-process the uploaded file with the new format
+            const reprocessFile = async () => {
+                const token = localStorage.getItem('token');
+                if (!token) return;
+
+                const formData = new FormData();
+                formData.append('file', uploadedFile);
+                formData.append('selected_fields', JSON.stringify(uploadedFileFields));
+                formData.append('output_format', selectedFormat);
+
+                try {
+                    const response = await fetch('http://127.0.0.1:8000/service-document-templates/upload-fill', {
+                        method: 'POST',
+                        headers: {
+                            Authorization: `Bearer ${token}`,
+                        },
+                        body: formData,
+                    });
+
+                    if (response.ok) {
+                        const blob = await response.blob();
+                        const ext = selectedFormat === 'pdf' ? 'pdf' : selectedFormat === 'docx' ? 'docx' : 'txt';
+                        const url = window.URL.createObjectURL(blob);
+                        const serviceName = services.find(s => s.id === selectedServiceId)?.name || 'document';
+                        setPreparedDocumentUrl(url);
+                        setPreparedDocumentName(`${serviceName}_пополнета_пријава.${ext}`);
+                        setUploadedFileFormat(selectedFormat);
+                    }
+                } catch (err) {
+                    console.error('Error reprocessing file:', err);
+                }
+            };
+
+            reprocessFile();
+        }
+    }, [uploadedFile, uploadedFileFields, selectedFormat, uploadedFileFormat, services, selectedServiceId]);
 
     const addMsg = (msg) => setMessages(prev => [...prev, msg]);
 
@@ -108,7 +151,8 @@ function AiChat() {
             }
             const blob = await response.blob();
             const ext = selectedFormat === 'pdf' ? 'pdf' : selectedFormat === 'docx' ? 'docx' : 'txt';
-            downloadBlob(blob, `${selectedServiceId}-application-form.${ext}`);
+            const selectedServiceName = services.find(s => s.id === selectedServiceId)?.name || 'document';
+            downloadBlob(blob, `${selectedServiceName}_пријава.${ext}`);
             setDocStatus('Празниот документ е преземен.');
         } catch {
             setDocStatus('Грешка при преземање на документот.');
@@ -168,7 +212,16 @@ function AiChat() {
 
             const blob = await response.blob();
             const url = window.URL.createObjectURL(blob);
-            const filename = response.headers.get('Content-Disposition')?.match(/filename="(.+?)"/)?.[1] || 'filled-document.txt';
+            const ext = selectedFormat === 'pdf' ? 'pdf' : selectedFormat === 'docx' ? 'docx' : 'txt';
+            const serviceName = services.find(s => s.id === selectedServiceId)?.name || 'document';
+            const filename = `${serviceName}_пополнета_пријава.${ext}`;
+            
+            setUploadedFile(file);
+            setUploadedFileFields(Object.entries(selectedFields)
+                .filter(([, enabled]) => enabled)
+                .map(([key]) => key));
+            setUploadedFileFormat(selectedFormat);
+            
             setPreparedDocumentUrl(url);
             setPreparedDocumentName(filename);
             setPreparedServiceId(response.headers.get('X-Detected-Service-Id') || '');
@@ -218,7 +271,8 @@ function AiChat() {
 
             const blob = await response.blob();
             const ext = selectedFormat === 'pdf' ? 'pdf' : selectedFormat === 'docx' ? 'docx' : 'txt';
-            downloadBlob(blob, `${selectedServiceId}-application-form-filled.${ext}`);
+            const selectedServiceName = services.find(s => s.id === selectedServiceId)?.name || 'document';
+            downloadBlob(blob, `${selectedServiceName}_пополнета_пријава.${ext}`);
             setDocStatus('Авто-полнетиот документ е преземен.');
         } catch {
             setDocStatus('Грешка при авто-полнење.');
@@ -289,16 +343,7 @@ function AiChat() {
                             ))}
                         </div>
                     </div>
-                    <div style={{ background: '#fff', borderRadius: 16, border: '1px solid #e2e8f0', overflow: 'hidden' }}>
-                        <div style={{ padding: '14px 18px 12px', fontSize: '0.7rem', fontWeight: 700, color: '#64748b', letterSpacing: '0.12em', textTransform: 'uppercase', borderBottom: '1px solid #e2e8f0' }}>Теми</div>
-                        <div style={{ padding: '12px 14px', display: 'flex', flexWrap: 'wrap', gap: 7 }}>
-                            {topics.map(t => (
-                                <button key={t} onClick={() => send(t)} style={{ background: '#EFF6FF', color: '#1B3A6B', border: 'none', padding: '6px 14px', borderRadius: 20, fontSize: '0.78rem', fontWeight: 600, cursor: 'pointer' }}>
-                                    {t}
-                                </button>
-                            ))}
-                        </div>
-                    </div>
+                    
                     <div style={{ background: '#fff', borderRadius: 16, border: '1px solid #e2e8f0', overflow: 'hidden' }}>
                         <div style={{ padding: '14px 18px 12px', fontSize: '0.7rem', fontWeight: 700, color: '#64748b', letterSpacing: '0.12em', textTransform: 'uppercase', borderBottom: '1px solid #e2e8f0' }}>Документи</div>
                         <div style={{ padding: 14, display: 'grid', gap: 10 }}>
@@ -307,25 +352,19 @@ function AiChat() {
                             </p>
                             <select
                                 value={selectedServiceId}
-                                onChange={(e) => setSelectedServiceId(e.target.value)}
+                                onChange={(e) => setSelectedServiceId(parseInt(e.target.value))}
                                 style={{ width: '100%', border: '1.5px solid #e2e8f0', borderRadius: 10, padding: '10px 12px', fontSize: '0.82rem', background: '#f8fafc' }}
                             >
                                 {services.map((service) => (
-                                    <option key={service.id} value={service.service_id}>
+                                    <option key={service.id} value={service.id}>
                                         {service.name}
                                     </option>
                                 ))}
                             </select>
 
-                            <select
-                                value={selectedFormat}
-                                onChange={(e) => setSelectedFormat(e.target.value)}
-                                style={{ width: '100%', border: '1.5px solid #e2e8f0', borderRadius: 10, padding: '8px 10px', fontSize: '0.82rem', background: '#fff' }}
-                            >
-                                <option value="txt">TXT (плоски текст)</option>
-                                <option value="pdf">PDF (принт пријателски)</option>
-                                <option value="docx">Word (.docx)</option>
-                            </select>
+                            <button onClick={handleDownloadBlank} style={{ width: '100%', background: '#EFF6FF', color: '#1B3A6B', border: '1px solid #bfdbfe', padding: '10px 12px', borderRadius: 10, fontSize: '0.82rem', fontWeight: 700, cursor: 'pointer' }}>
+                                Преземи празен документ
+                            </button>
 
                             <div style={{ display: 'grid', gap: 6, fontSize: '0.8rem', color: '#334155' }}>
                                 <label><input type="checkbox" checked={selectedFields.full_name} onChange={(e) => setSelectedFields(prev => ({ ...prev, full_name: e.target.checked }))} /> Име и презиме</label>
@@ -336,12 +375,20 @@ function AiChat() {
                                 <label><input type="checkbox" checked={selectedFields.gender} onChange={(e) => setSelectedFields(prev => ({ ...prev, gender: e.target.checked }))} /> Пол</label>
                             </div>
 
-                            <button onClick={handleDownloadBlank} style={{ width: '100%', background: '#EFF6FF', color: '#1B3A6B', border: '1px solid #bfdbfe', padding: '10px 12px', borderRadius: 10, fontSize: '0.82rem', fontWeight: 700, cursor: 'pointer' }}>
-                                Преземи празен документ
-                            </button>
                             <button onClick={triggerUpload} style={{ width: '100%', background: '#1B3A6B', color: '#fff', border: 'none', padding: '10px 12px', borderRadius: 10, fontSize: '0.82rem', fontWeight: 700, cursor: 'pointer' }}>
                                 Прикачи документ за пополнување
                             </button>
+
+                            <select
+                                value={selectedFormat}
+                                onChange={(e) => setSelectedFormat(e.target.value)}
+                                style={{ width: '100%', border: '1.5px solid #e2e8f0', borderRadius: 10, padding: '8px 10px', fontSize: '0.82rem', background: '#fff' }}
+                            >
+                                <option value="txt">TXT (основен текст документ)</option>
+                                <option value="pdf">PDF</option>
+                                <option value="docx">Word (.docx)</option>
+                            </select>
+
                             <input ref={fileInputRef} type="file" accept=".txt" onChange={handleSelectedFile} style={{ display: 'none' }} />
                             {preparedDocumentUrl && (
                                 <button onClick={downloadPreparedDocument} style={{ width: '100%', background: '#166534', color: '#fff', border: 'none', padding: '10px 12px', borderRadius: 10, fontSize: '0.82rem', fontWeight: 700, cursor: 'pointer' }}>
@@ -424,6 +471,7 @@ function AiChat() {
                     </div>
                 </div>
             </div>
+            <Footer />
         </div>
     );
 }

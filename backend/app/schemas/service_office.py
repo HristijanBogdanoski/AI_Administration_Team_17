@@ -8,7 +8,7 @@ class CoordinatesSchema(BaseModel):
 
 
 class ServiceOfficeCreate(BaseModel):
-    service_id: str
+    service_id: int
     service_name: str
     office_name: str
     address: str
@@ -30,7 +30,7 @@ class ServiceOfficeUpdate(BaseModel):
 
 class ServiceOfficeResponse(BaseModel):
     id: int
-    service_id: str
+    service_id: int
     service_name: str
     office_name: str
     address: str

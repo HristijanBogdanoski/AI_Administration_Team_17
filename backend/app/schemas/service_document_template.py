@@ -4,7 +4,7 @@ from pydantic import BaseModel, Field
 
 
 class ServiceDocumentTemplateBase(BaseModel):
-    service_id: str = Field(..., min_length=1, max_length=100)
+    service_id: int = Field(...)
     title: str = Field(..., min_length=1, max_length=255)
     template_type: str = Field(default="json", min_length=1, max_length=20)
     template_body: dict[str, Any]

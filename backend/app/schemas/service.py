@@ -5,7 +5,6 @@ from app.models.enums import ServiceCategory
 
 
 class ServiceBase(BaseModel):
-    service_id: str = Field(..., min_length=1, max_length=100)
     name: str = Field(..., min_length=1, max_length=255)
     category: ServiceCategory
     description: Optional[str] = None
@@ -18,7 +17,6 @@ class ServiceCreate(ServiceBase):
 
 
 class ServiceUpdate(BaseModel):
-    service_id: Optional[str] = Field(default=None, min_length=1, max_length=100)
     name: Optional[str] = Field(default=None, min_length=1, max_length=255)
     category: Optional[ServiceCategory] = None
     description: Optional[str] = None

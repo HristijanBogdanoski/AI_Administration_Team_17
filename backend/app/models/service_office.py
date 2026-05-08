@@ -7,7 +7,8 @@ class ServiceOffice(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     service_name = Column(String(255), nullable=False, index=True)
-    service_id = Column(String(100), ForeignKey("services.service_id", ondelete="CASCADE"), nullable=False, index=True)
+    # reference the service by numeric primary key `services.id`
+    service_id = Column(Integer, ForeignKey("services.id", ondelete="CASCADE"), nullable=False, index=True)
     office_name = Column(String(255), nullable=False)
     address = Column(String(500), nullable=False)
     latitude = Column(Float, nullable=False)
