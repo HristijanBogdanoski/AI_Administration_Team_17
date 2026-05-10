@@ -113,7 +113,7 @@ function AiChat() {
             const ext = selectedFormat === 'pdf' ? 'pdf' : selectedFormat === 'docx' ? 'docx' : 'txt';
             const selectedServiceName = services.find(s => s.id === selectedServiceId)?.name || 'document';
             downloadBlob(blob, `${selectedServiceName}_празна_пријава.${ext}`);
-            setDocStatus('✓ Празниот документ е преземен. Пополнете го и прикачете го подолу.');
+            setDocStatus('✓ Празниот документ е преземен.');
         } catch {
             setDocStatus('Грешка при преземање на документот.');
         } finally {
@@ -162,7 +162,7 @@ function AiChat() {
             const blob = await response.blob();
             const ext = selectedFormat === 'pdf' ? 'pdf' : selectedFormat === 'docx' ? 'docx' : 'txt';
             downloadBlob(blob, `пополнета_пријава.${ext}`);
-            setUploadStatus('✓ Пополнетиот документ е преземен.');
+            setUploadStatus('✓ Документ е успешно прикачен.');
             setUploadFile(null);
         } catch {
             setUploadStatus('Грешка при прикачување.');
@@ -274,7 +274,7 @@ function AiChat() {
 
                             <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: 10 }}>
                                 <p style={{ margin: '0 0 8px', fontSize: '0.75rem', color: '#64748b', lineHeight: 1.4 }}>
-                                    Или прикачи го пополнетиот документ за автоматско пополнување со твои податоци:
+                                    Прикачи го празниот документ за автоматско пополнување со твои податоци:
                                 </p>
 
                                 <div style={{ display: 'grid', gap: 6, fontSize: '0.8rem', color: '#334155', marginBottom: 8 }}>
