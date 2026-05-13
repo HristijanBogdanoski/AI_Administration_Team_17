@@ -53,8 +53,11 @@ function AiChat() {
         gender: false,
     });
     const [docStatus, setDocStatus] = useState('');
-    const [autoFillLoading, setAutoFillLoading] = useState(false);
+    const [blankLoading, setBlankLoading] = useState(false);
+    const [uploadLoading, setUploadLoading] = useState(false);
     const [selectedFormat, setSelectedFormat] = useState('txt');
+    const [uploadFile, setUploadFile] = useState(null);
+    const [uploadStatus, setUploadStatus] = useState('');
     const msgsRef = useRef(null);
 
     useEffect(() => {
@@ -96,48 +99,75 @@ function AiChat() {
         window.URL.revokeObjectURL(url);
     };
 
-    const handleAutoFillDownload = async () => {
+    const handleBlankDownload = async () => {
+        if (!selectedServiceId) return;
+        setBlankLoading(true);
+        setDocStatus('');
+        try {
+            const response = await fetch(`http://127.0.0.1:8000/service-document-templates/${selectedServiceId}/download?format=${encodeURIComponent(selectedFormat)}`);
+            if (!response.ok) {
+                setDocStatus('Оваа услуга нема достапен шаблон за преземање.');
+                return;
+            }
+            const blob = await response.blob();
+            const ext = selectedFormat === 'pdf' ? 'pdf' : selectedFormat === 'docx' ? 'docx' : 'txt';
+            const selectedServiceName = services.find(s => s.id === selectedServiceId)?.name || 'document';
+            downloadBlob(blob, `${selectedServiceName}_празна_пријава.${ext}`);
+            setDocStatus('✓ Празниот документ е преземен.');
+        } catch {
+            setDocStatus('Грешка при преземање на документот.');
+        } finally {
+            setBlankLoading(false);
+        }
+    };
+
+    const handleUploadFill = async () => {
         const token = localStorage.getItem('token');
         if (!token) {
-            setDocStatus('Потребна е најава за авто-полнење.');
+            setUploadStatus('Потребна е најава за пополнување.');
             return;
         }
-        if (!selectedServiceId) return;
+        if (!uploadFile) {
+            setUploadStatus('Изберете датотека за прикачување.');
+            return;
+        }
 
         const selectedFieldList = Object.entries(selectedFields)
             .filter(([, enabled]) => enabled)
             .map(([key]) => key);
 
-        setAutoFillLoading(true);
-        setDocStatus('');
+        setUploadLoading(true);
+        setUploadStatus('');
         try {
-            const response = await fetch(`http://127.0.0.1:8000/service-document-templates/${selectedServiceId}/auto-fill?format=${encodeURIComponent(selectedFormat)}`, {
+            const formData = new FormData();
+            formData.append('file', uploadFile);
+            formData.append('selected_fields', JSON.stringify(selectedFieldList));
+            formData.append('output_format', selectedFormat);
+
+            const response = await fetch('http://127.0.0.1:8000/service-document-templates/upload-fill', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    Authorization: `Bearer ${token}`,
-                },
-                body: JSON.stringify({ selected_fields: selectedFieldList }),
+                headers: { Authorization: `Bearer ${token}` },
+                body: formData,
             });
 
             if (!response.ok) {
                 if (response.status === 404) {
-                    setDocStatus('Оваа услуга нема достапен документ за пополнување.');
+                    setUploadStatus('Не може да се препознае документот. Прикачете го оригиналниот шаблон.');
                 } else {
-                    setDocStatus('Неуспешно авто-полнење на документот.');
+                    setUploadStatus('Неуспешно пополнување на документот.');
                 }
                 return;
             }
 
             const blob = await response.blob();
             const ext = selectedFormat === 'pdf' ? 'pdf' : selectedFormat === 'docx' ? 'docx' : 'txt';
-            const selectedServiceName = services.find(s => s.id === selectedServiceId)?.name || 'document';
-            downloadBlob(blob, `${selectedServiceName}_пополнета_пријава.${ext}`);
-            setDocStatus('✓ Документот е преземен.');
+            downloadBlob(blob, `пополнета_пријава.${ext}`);
+            setUploadStatus('✓ Документ е успешно прикачен.');
+            setUploadFile(null);
         } catch {
-            setDocStatus('Грешка при авто-полнење.');
+            setUploadStatus('Грешка при прикачување.');
         } finally {
-            setAutoFillLoading(false);
+            setUploadLoading(false);
         }
     };
 
@@ -209,9 +239,6 @@ function AiChat() {
                     <div style={{ background: '#fff', borderRadius: 16, border: '1px solid #e2e8f0', overflow: 'hidden' }}>
                         <div style={{ padding: '14px 18px 12px', fontSize: '0.7rem', fontWeight: 700, color: '#64748b', letterSpacing: '0.12em', textTransform: 'uppercase', borderBottom: '1px solid #e2e8f0' }}>Документи</div>
                         <div style={{ padding: 14, display: 'grid', gap: 10 }}>
-                            <p style={{ margin: 0, fontSize: '0.78rem', color: '#64748b', lineHeight: 1.5 }}>
-                                Изберете услуга и полиња, па кликнете „Автоматски пополни" за да добиете пополнет документ со Вашите податоци.
-                            </p>
                             <select
                                 value={selectedServiceId}
                                 onChange={(e) => setSelectedServiceId(parseInt(e.target.value))}
@@ -224,15 +251,6 @@ function AiChat() {
                                 ))}
                             </select>
 
-                            <div style={{ display: 'grid', gap: 6, fontSize: '0.8rem', color: '#334155' }}>
-                                <label><input type="checkbox" checked={selectedFields.full_name} onChange={(e) => setSelectedFields(prev => ({ ...prev, full_name: e.target.checked }))} /> Име и презиме</label>
-                                <label><input type="checkbox" checked={selectedFields.email} onChange={(e) => setSelectedFields(prev => ({ ...prev, email: e.target.checked }))} /> Е-маил</label>
-                                <label><input type="checkbox" checked={selectedFields.embg} onChange={(e) => setSelectedFields(prev => ({ ...prev, embg: e.target.checked }))} /> ЕМБГ</label>
-                                <label><input type="checkbox" checked={selectedFields.address} onChange={(e) => setSelectedFields(prev => ({ ...prev, address: e.target.checked }))} /> Адреса</label>
-                                <label><input type="checkbox" checked={selectedFields.phone_number} onChange={(e) => setSelectedFields(prev => ({ ...prev, phone_number: e.target.checked }))} /> Телефон</label>
-                                <label><input type="checkbox" checked={selectedFields.gender} onChange={(e) => setSelectedFields(prev => ({ ...prev, gender: e.target.checked }))} /> Пол</label>
-                            </div>
-
                             <select
                                 value={selectedFormat}
                                 onChange={(e) => setSelectedFormat(e.target.value)}
@@ -243,15 +261,48 @@ function AiChat() {
                                 <option value="docx">Word (.docx)</option>
                             </select>
 
+                            {/* Step 1: Download blank */}
                             <button
-                                onClick={handleAutoFillDownload}
-                                disabled={autoFillLoading}
-                                style={{ width: '100%', background: autoFillLoading ? '#94a3b8' : 'linear-gradient(135deg,#1B3A6B 0%,#2563eb 100%)', color: '#fff', border: 'none', padding: '10px 12px', borderRadius: 10, fontSize: '0.82rem', fontWeight: 700, cursor: autoFillLoading ? 'not-allowed' : 'pointer', transition: 'background 0.2s' }}
+                                onClick={handleBlankDownload}
+                                disabled={blankLoading}
+                                style={{ width: '100%', background: blankLoading ? '#94a3b8' : 'linear-gradient(135deg,#0f2044 0%,#1B3A6B 100%)', color: '#fff', border: 'none', padding: '10px 12px', borderRadius: 10, fontSize: '0.82rem', fontWeight: 700, cursor: blankLoading ? 'not-allowed' : 'pointer' }}
                             >
-                                {autoFillLoading ? '⏳ Се генерира...' : '✦ Автоматски пополни'}
+                                {blankLoading ? '⏳ Се презема...' : '📄 Преземи Празен Документ'}
                             </button>
 
                             {docStatus && <div style={{ fontSize: '0.75rem', color: '#64748b', lineHeight: 1.4 }}>{docStatus}</div>}
+
+                            <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: 10 }}>
+                                <p style={{ margin: '0 0 8px', fontSize: '0.75rem', color: '#64748b', lineHeight: 1.4 }}>
+                                    Прикачи го празниот документ за автоматско пополнување со твои податоци:
+                                </p>
+
+                                <div style={{ display: 'grid', gap: 6, fontSize: '0.8rem', color: '#334155', marginBottom: 8 }}>
+                                    <label><input type="checkbox" checked={selectedFields.full_name} onChange={(e) => setSelectedFields(prev => ({ ...prev, full_name: e.target.checked }))} /> Име и презиме</label>
+                                    <label><input type="checkbox" checked={selectedFields.email} onChange={(e) => setSelectedFields(prev => ({ ...prev, email: e.target.checked }))} /> Е-маил</label>
+                                    <label><input type="checkbox" checked={selectedFields.embg} onChange={(e) => setSelectedFields(prev => ({ ...prev, embg: e.target.checked }))} /> ЕМБГ</label>
+                                    <label><input type="checkbox" checked={selectedFields.address} onChange={(e) => setSelectedFields(prev => ({ ...prev, address: e.target.checked }))} /> Адреса</label>
+                                    <label><input type="checkbox" checked={selectedFields.phone_number} onChange={(e) => setSelectedFields(prev => ({ ...prev, phone_number: e.target.checked }))} /> Телефон</label>
+                                    <label><input type="checkbox" checked={selectedFields.gender} onChange={(e) => setSelectedFields(prev => ({ ...prev, gender: e.target.checked }))} /> Пол</label>
+                                </div>
+
+                                <input
+                                    type="file"
+                                    accept=".txt,.pdf,.docx"
+                                    onChange={(e) => { setUploadFile(e.target.files[0]); setUploadStatus(''); }}
+                                    style={{ width: '100%', fontSize: '0.78rem', marginBottom: 6 }}
+                                />
+
+                                <button
+                                    onClick={handleUploadFill}
+                                    disabled={uploadLoading || !uploadFile}
+                                    style={{ width: '100%', background: (uploadLoading || !uploadFile) ? '#94a3b8' : 'linear-gradient(135deg,#1B3A6B 0%,#2563eb 100%)', color: '#fff', border: 'none', padding: '10px 12px', borderRadius: 10, fontSize: '0.82rem', fontWeight: 700, cursor: (uploadLoading || !uploadFile) ? 'not-allowed' : 'pointer' }}
+                                >
+                                    {uploadLoading ? '⏳ Се пополнува...' : '✦ Пополни со мои податоци'}
+                                </button>
+
+                                {uploadStatus && <div style={{ fontSize: '0.75rem', color: '#64748b', lineHeight: 1.4, marginTop: 6 }}>{uploadStatus}</div>}
+                            </div>
                         </div>
                     </div>
                 </div>
