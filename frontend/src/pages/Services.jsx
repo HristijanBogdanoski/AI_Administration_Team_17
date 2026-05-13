@@ -44,6 +44,22 @@ export default function Services() {
     const [autoFillLoading, setAutoFillLoading] = useState(false);
     const [autoFillError, setAutoFillError] = useState('');
 
+    const loginAfterRegister = async (email, password) => {
+        const loginResponse = await fetch('http://127.0.0.1:8000/auth/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, password }),
+        });
+        const loginData = await loginResponse.json();
+
+        if (!loginResponse.ok) {
+            throw new Error(loginData.detail || 'Регистрацијата е успешна, но најава не успеа.');
+        }
+
+        localStorage.setItem('token', loginData.access_token);
+        setIsLoggedIn(true);
+    };
+
     // --- TEMPLATE HANDLERS ---
     const handleTemplateCrud = (mode) => {
         setTemplateMode(mode);
@@ -212,7 +228,10 @@ export default function Services() {
                     setShowModal(false);
                     window.location.reload();
                 } else {
+                    await loginAfterRegister(authForm.email, authForm.password);
                     setAuthMode("login");
+                    setShowModal(false);
+                    window.location.reload();
                 }
             } else {
                 console.error(data.detail || "Грешка при автентикација");
@@ -271,13 +290,14 @@ export default function Services() {
     const handleDownloadDocument = async () => {
         if (!selectedService?.id) return;
         try {
-            const response = await fetch(`http://127.0.0.1:8000/service-document-templates/${selectedService.id}/download?format=${encodeURIComponent(selectedFormat)}`);
+            // Always download blank templates as TXT — only filled output uses selectedFormat
+            const response = await fetch(`http://127.0.0.1:8000/service-document-templates/${selectedService.id}/download?format=txt`);
             if (!response.ok) {
                 console.error("Неуспешно преземање на документот.");
                 return;
             }
             const blob = await response.blob();
-            const ext = selectedFormat === 'pdf' ? 'pdf' : selectedFormat === 'docx' ? 'docx' : 'txt';
+            const ext = 'txt';
             downloadBlob(blob, `${selectedService.id}-application-form.${ext}`);
         } catch {
             console.error("Грешка при преземање на документот.");

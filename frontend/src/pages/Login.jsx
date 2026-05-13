@@ -12,6 +12,21 @@
         const [error, setError] = useState('');
         const [loading, setLoading] = useState(false);
 
+        const loginAfterRegister = async (email, password) => {
+            const loginResponse = await fetch('http://127.0.0.1:8000/auth/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, password }),
+            });
+            const loginData = await loginResponse.json();
+
+            if (!loginResponse.ok) {
+                throw new Error(loginData.detail || 'Регистрацијата е успешна, но најава не успеа.');
+            }
+
+            localStorage.setItem('token', loginData.access_token);
+        };
+
         const switchTab = (tab) => {
             setActiveTab(tab);
             setError('');
@@ -72,7 +87,9 @@
                 });
                 const data = await response.json();
                 if (response.ok) {
+                    await loginAfterRegister(registerForm.email, registerForm.password);
                     setRegisterSuccess(true);
+                    setTimeout(() => navigate('/'), 1500);
                 } else {
                     setError(data.detail || 'Грешка при регистрација.');
                 }

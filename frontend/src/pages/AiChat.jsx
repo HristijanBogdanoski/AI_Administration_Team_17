@@ -104,13 +104,14 @@ function AiChat() {
         setBlankLoading(true);
         setDocStatus('');
         try {
-            const response = await fetch(`http://127.0.0.1:8000/service-document-templates/${selectedServiceId}/download?format=${encodeURIComponent(selectedFormat)}`);
+            // Always download blank templates as plain TXT per UX requirement
+            const response = await fetch(`http://127.0.0.1:8000/service-document-templates/${selectedServiceId}/download?format=txt`);
             if (!response.ok) {
                 setDocStatus('Оваа услуга нема достапен шаблон за преземање.');
                 return;
             }
             const blob = await response.blob();
-            const ext = selectedFormat === 'pdf' ? 'pdf' : selectedFormat === 'docx' ? 'docx' : 'txt';
+            const ext = 'txt';
             const selectedServiceName = services.find(s => s.id === selectedServiceId)?.name || 'document';
             downloadBlob(blob, `${selectedServiceName}_празна_пријава.${ext}`);
             setDocStatus('✓ Празниот документ е преземен.');
@@ -162,8 +163,7 @@ function AiChat() {
             const blob = await response.blob();
             const ext = selectedFormat === 'pdf' ? 'pdf' : selectedFormat === 'docx' ? 'docx' : 'txt';
             downloadBlob(blob, `пополнета_пријава.${ext}`);
-            setUploadStatus('✓ Документ е успешно прикачен.');
-            setUploadFile(null);
+            setUploadStatus('✓ Документот е успешно превземен.');
         } catch {
             setUploadStatus('Грешка при прикачување.');
         } finally {
@@ -251,16 +251,6 @@ function AiChat() {
                                 ))}
                             </select>
 
-                            <select
-                                value={selectedFormat}
-                                onChange={(e) => setSelectedFormat(e.target.value)}
-                                style={{ width: '100%', border: '1.5px solid #e2e8f0', borderRadius: 10, padding: '8px 10px', fontSize: '0.82rem', background: '#fff' }}
-                            >
-                                <option value="txt">TXT</option>
-                                <option value="pdf">PDF</option>
-                                <option value="docx">Word (.docx)</option>
-                            </select>
-
                             {/* Step 1: Download blank */}
                             <button
                                 onClick={handleBlankDownload}
@@ -292,6 +282,17 @@ function AiChat() {
                                     onChange={(e) => { setUploadFile(e.target.files[0]); setUploadStatus(''); }}
                                     style={{ width: '100%', fontSize: '0.78rem', marginBottom: 6 }}
                                 />
+
+                                <select
+                                value={selectedFormat}
+                                onChange={(e) => setSelectedFormat(e.target.value)}
+                                style={{ width: '100%', border: '1.5px solid #e2e8f0', borderRadius: 10, padding: '8px 10px', fontSize: '0.82rem', background: '#fff' }}
+                             >
+                                
+                                <option value="txt">TXT</option>
+                                <option value="pdf">PDF</option>
+                                <option value="docx">Word (.docx)</option>
+                                </select>
 
                                 <button
                                     onClick={handleUploadFill}

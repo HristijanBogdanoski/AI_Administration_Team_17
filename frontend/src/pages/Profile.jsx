@@ -9,6 +9,7 @@ function Profile() {
     const [error, setError] = useState('');
     const [embgLocked, setEmbgLocked] = useState(false);
     const [form, setForm] = useState({
+        full_name: '',
         email: '',
         embg: '',
         address: '',
@@ -18,6 +19,8 @@ function Profile() {
         newPassword: '',
         confirmNew: '',
     });
+
+    const [firstName, lastName] = (form.full_name || '').split(/\s+/, 2);
 
     useEffect(() => {
         const fetchMe = async () => {
@@ -41,6 +44,7 @@ function Profile() {
 
                 setForm((prev) => ({
                     ...prev,
+                    full_name: data.full_name || '',
                     email: data.email || '',
                     embg: data.embg || '',
                     address: data.address || '',
@@ -111,6 +115,7 @@ function Profile() {
 
             setForm((prev) => ({
                 ...prev,
+                full_name: data.full_name || prev.full_name,
                 email: data.email || prev.email,
                 embg: data.embg || prev.embg,
                 address: data.address || prev.address,
@@ -178,6 +183,32 @@ function Profile() {
                 )}
 
                 <form onSubmit={handleSubmit}>
+                    <div style={{ marginBottom: 16 }}>
+                        <label style={{ display: 'block', marginBottom: 6, fontSize: '0.875rem', color: '#374151' }}>Име и презиме (заклучено)</label>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                            <input
+                                type="text"
+                                value={firstName || ''}
+                                disabled
+                                placeholder="Име"
+                                style={{
+                                    width: '100%', padding: '12px 14px', borderRadius: 10,
+                                    border: '1px solid #e2e8f0', background: '#F1F5F9', boxSizing: 'border-box'
+                                }}
+                            />
+                            <input
+                                type="text"
+                                value={lastName || ''}
+                                disabled
+                                placeholder="Презиме"
+                                style={{
+                                    width: '100%', padding: '12px 14px', borderRadius: 10,
+                                    border: '1px solid #e2e8f0', background: '#F1F5F9', boxSizing: 'border-box'
+                                }}
+                            />
+                        </div>
+                    </div>
+
                     <div style={{ marginBottom: 16 }}>
                         <label style={{ display: 'block', marginBottom: 6, fontSize: '0.875rem', color: '#374151' }}>Е-маил</label>
                         <input

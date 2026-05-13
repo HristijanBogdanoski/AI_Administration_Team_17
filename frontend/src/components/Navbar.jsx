@@ -75,7 +75,7 @@ function Navbar() {
                 backdropFilter: 'blur(12px)',
                 padding: '0 36px',
                 display: 'grid',
-                gridTemplateColumns: '200px 1fr auto',
+                gridTemplateColumns: '1fr auto 1fr',
                 alignItems: 'center',
                 height: 66,
                 position: 'sticky',
@@ -88,7 +88,7 @@ function Navbar() {
                 {/* Logo */}
                 <div
                     onClick={() => navigate('/')}
-                    style={{ display: 'flex', alignItems: 'center', gap: 11, cursor: 'pointer' }}
+                    style={{ display: 'flex', alignItems: 'center', gap: 11, cursor: 'pointer', justifySelf: 'start' }}
                 >
                     <div style={{
                         width: 42, height: 42, borderRadius: 12,
@@ -104,7 +104,7 @@ function Navbar() {
                 </div>
 
                 {/* Nav links */}
-                <div style={{ display: 'flex', gap: 2, justifyContent: 'center', alignItems: 'center' }}>
+                <div style={{ display: 'flex', gap: 2, justifyContent: 'center', alignItems: 'center', justifySelf: 'center' }}>
                     {allLinks.map(({ label, path }) => {
                         const active = location.pathname === path;
                         return (
@@ -121,7 +121,7 @@ function Navbar() {
 
                 {/* Auth */}
                 {isLoggedIn ? (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'flex-end', flexWrap: 'nowrap', minWidth: 0 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'flex-end', flexWrap: 'nowrap', minWidth: 0, justifySelf: 'end' }}>
                         <button
                             onClick={() => navigate('/profile')}
                             style={{
@@ -163,7 +163,7 @@ function Navbar() {
                         </button>
                     </div>
                 ) : (
-                    <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', justifySelf: 'end' }}>
                         <button
                             onClick={() => navigate('/login')}
                             style={{
