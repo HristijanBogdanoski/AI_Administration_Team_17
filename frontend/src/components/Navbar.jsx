@@ -98,7 +98,7 @@ function Navbar() {
                         boxShadow: '0 2px 8px rgba(212,160,23,0.2)',
                     }}>🛡️</div>
                     <div>
-                        <div style={{ color: '#D4A017', fontWeight: 800, fontSize: '1.05rem', letterSpacing: '-0.01em' }}>е-Влада</div>
+                        <div style={{ color: '#D4A017', fontWeight: 800, fontSize: '1.05rem', letterSpacing: '-0.01em' }}>БрзиУслуги</div>
                         <div style={{ color: '#93c5fd', fontSize: '0.66rem', letterSpacing: '0.04em', opacity: 0.85 }}>ЈАВНИ УСЛУГИ</div>
                     </div>
                 </div>

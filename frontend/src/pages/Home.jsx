@@ -103,8 +103,8 @@ function Home() {
             {/* --- HERO SECTION --- */}
             <div className="fourth-container">
                 <div className="box-inside">
-                    <h1 style={{color: "white"}}>Добредојдовте на <span style={{color: "rgb(212, 160, 23)"}}>е-Влада</span></h1>
-                    <p style={{color: "rgb(147, 197, 253)"}}>Вашиот дигитален портал за сите валидни услуги. Брзо, лесно и достапно 24/7.</p>
+                    <h1 style={{color: "white"}}>Добредојдовте на <span style={{color: "rgb(212, 160, 23)"}}>БрзиУслуги</span></h1>
+                    <p style={{color: "rgb(147, 197, 253)"}}>Вашиот дигитален портал за сите владини услуги. Едноставно и достапно 24/7.</p>
                     <div className="buttons-inside">
                         <button className="btn-link6" onClick={() => navigate('/services')}>Разгледај Услуги &rarr;</button>
                         <button className="btn-link7" onClick={() => navigate("/chat")}>АИ Асистент</button>
@@ -176,9 +176,9 @@ function Home() {
             {/* --- INFO SECTION --- */}
             <div className="eigth-container">
                 <div className="eigth-text">
-                    <p className="zosto">Зошто е-Влада?</p>
+                    <p className="zosto">Зошто БрзиУслуги?</p>
                     <h2 style={{color: "rgb(27, 58, 107)"}}>Дигитална трансформација на јавните услуги</h2>
-                    <p>е-Влада е официјалниот портал на Владата на Република Северна Македонија кој овозможува брз, лесен и безбеден пристап до над 150 јавни услуги директно од дома.</p>
+                    <p>БрзиУслуги е официјалниот портал на Владата на Република Северна Македонија кој овозможува брз, лесен и безбеден пристап до над 150 јавни услуги директно од дома.</p>
                     <p>✓ Поднесување барања без чекање на ред</p>
                     <p>✓ Проверка на статус на барање во реално време</p>
                     <p>✓ Безбедно плаќање на такси и придонеси</p>

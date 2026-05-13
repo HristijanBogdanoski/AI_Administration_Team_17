@@ -33,7 +33,7 @@ function getTime() {
 }
 
 const initialMessages = [
-    { type: 'bot', text: 'Добар ден! Јас сум АИ Асистентот на е-Влада порталот. Подготвен сум да одговорам на вашите прашања за јавните услуги – документи, даноци, социјала, и многу повеќе.', time: getTime() },
+    { type: 'bot', text: 'Добар ден! Јас сум АИ Асистентот на порталот БрзиУслуги. Подготвен сум да одговорам на вашите прашања за јавните услуги – документи, даноци, социјала, и многу повеќе.', time: getTime() },
     { type: 'bot', text: 'Како можам да ви помогнам денес?', time: getTime() },
 ];
 
@@ -173,7 +173,7 @@ function AiChat() {
     };
 
     const resetChat = () => setMessages([
-        { type: 'bot', text: 'Добар ден! Јас сум АИ Асистентот на е-Влада порталот. Подготвен сум да одговорам на вашите прашања за јавните услуги – документи, даноци, социјала, и многу повеќе.', time: getTime() },
+        { type: 'bot', text: 'Добар ден! Јас сум АИ Асистентот на порталот БрзиУслуги. Подготвен сум да одговорам на вашите прашања за јавните услуги – документи, даноци, социјала, и многу повеќе.', time: getTime() },
         { type: 'bot', text: 'Како можам да ви помогнам денес?', time: getTime() },
     ]);
 
@@ -187,7 +187,7 @@ function AiChat() {
                     <div style={{ position: 'absolute', top: -4, right: -4, width: 14, height: 14, background: '#22c55e', borderRadius: '50%', border: '2.5px solid #1B3A6B' }} />
                 </div>
                 <h2 style={{ color: '#fff', fontSize: '2.2rem', fontWeight: 800, margin: '0 0 10px' }}>АИ Асистент</h2>
-                <p style={{ color: '#D4A017', margin: 0, fontSize: '0.9rem' }}>Вештачка интелигенција за јавни услуги на е-Влада</p>
+                <p style={{ color: '#D4A017', margin: 0, fontSize: '0.9rem' }}>Вештачка интелигенција за јавни услуги на БрзиУслуги</p>
             </div>
 
             {/* Main */}
@@ -266,7 +266,7 @@ function AiChat() {
                                 <div style={{ position: 'absolute', bottom: -2, right: -2, width: 11, height: 11, background: '#22c55e', borderRadius: '50%', border: '2px solid #fff' }} />
                             </div>
                             <div>
-                                <div style={{ fontSize: '0.88rem', fontWeight: 700, color: '#0f2044' }}>е-Влада АИ Асистент</div>
+                                <div style={{ fontSize: '0.88rem', fontWeight: 700, color: '#0f2044' }}>БрзиУслуги АИ Асистент</div>
                                 <div style={{ fontSize: '0.75rem', color: '#22c55e', fontWeight: 600 }}>● Активен</div>
                             </div>
                         </div>

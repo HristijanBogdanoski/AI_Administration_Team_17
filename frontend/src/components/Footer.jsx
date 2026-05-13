@@ -28,7 +28,7 @@ function Footer() {
             <hr style={{borderColor: "rgba(255,255,255,0.1)", margin: "40px 0"}}/>
             <div className="footer-bottom">
                 <div className="footer-brand">
-                    <h3 style={{color: "rgb(212, 160, 23)", marginBottom: "15px"}}>е-Влада</h3>
+                    <h3 style={{color: "rgb(212, 160, 23)", marginBottom: "15px"}}>БрзиУслуги</h3>
                     <p>Официјален портал на Владата на Република Северна Македонија за јавни услуги и информации.</p>
                 </div>
                 <div className="footer-links">
