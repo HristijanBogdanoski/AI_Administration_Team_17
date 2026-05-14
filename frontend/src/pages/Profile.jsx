@@ -22,6 +22,20 @@ function Profile() {
 
     const [firstName, lastName] = (form.full_name || '').split(/\s+/, 2);
 
+    const getApiErrorMessage = (detail, fallback) => {
+        if (typeof detail === 'string') {
+            return detail;
+        }
+
+        if (Array.isArray(detail)) {
+            return detail
+                .map((item) => item?.msg || item?.message || 'Невалидни податоци.')
+                .join(' ');
+        }
+
+        return fallback;
+    };
+
     useEffect(() => {
         const fetchMe = async () => {
             const token = localStorage.getItem('token');
@@ -78,6 +92,11 @@ function Profile() {
             return;
         }
 
+        if (!embgLocked && form.embg && form.embg.length !== 13) {
+            setError('ЕМБГ мора да има точно 13 карактери.');
+            return;
+        }
+
         const payload = {
             email: form.email || null,
             embg: embgLocked ? null : (form.embg || null),
@@ -109,7 +128,7 @@ function Profile() {
             const data = await response.json();
 
             if (!response.ok) {
-                setError(data.detail || 'Неуспешно ажурирање на профил.');
+                setError(getApiErrorMessage(data.detail, 'Неуспешно ажурирање на профил.'));
                 return;
             }
 

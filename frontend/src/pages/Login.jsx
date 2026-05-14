@@ -12,6 +12,20 @@
         const [error, setError] = useState('');
         const [loading, setLoading] = useState(false);
 
+        const getApiErrorMessage = (detail, fallback) => {
+            if (typeof detail === 'string') {
+                return detail;
+            }
+
+            if (Array.isArray(detail)) {
+                return detail
+                    .map((item) => item?.msg || item?.message || 'Невалидни податоци.')
+                    .join(' ');
+            }
+
+            return fallback;
+        };
+
         const loginAfterRegister = async (email, password) => {
             const loginResponse = await fetch('http://127.0.0.1:8000/auth/login', {
                 method: 'POST',
@@ -70,6 +84,10 @@
                 setError('Лозинката мора да содржи најмалку 8 карактери.');
                 return;
             }
+            if (registerForm.embg && registerForm.embg.length !== 13) {
+                setError('ЕМБГ мора да има точно 13 карактери.');
+                return;
+            }
             setLoading(true);
             try {
                 const response = await fetch('http://127.0.0.1:8000/auth/register', {
@@ -91,7 +109,7 @@
                     setRegisterSuccess(true);
                     setTimeout(() => navigate('/'), 1500);
                 } else {
-                    setError(data.detail || 'Грешка при регистрација.');
+                    setError(getApiErrorMessage(data.detail, 'Грешка при регистрација.'));
                 }
             } catch {
                 setError('Грешка при поврзување со серверот.');
